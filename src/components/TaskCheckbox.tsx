@@ -24,46 +24,28 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
 
         const supabase = createClient();
 
-        // 1. Prepare the update object
-        const updates: any = {
-            updated_at: new Date().toISOString()
-        };
-
-        if (userRole === 'Visual Manager' || userRole === 'Admin') {
-            // Manager Power: Mark both as true
-            updates.designer_checked = true;
-            updates.manager_approved = true;
-        } else {
-            // Normal Designer: Toggle the value (if it was false, make true)
-            updates.designer_checked = !part.designer_checked;
-        }
-
-        // 2. Send update to Supabase for the current part
-        const { error } = await supabase
+        const { error: updateError } = await supabase
             .from('task_parts')
-            .update(updates)
+            .update({ designer_checked: !part.designer_checked })
             .eq('id', part.id);
 
-        if (error) {
-            console.error("Supabase Error:", error.message);
-            alert("Error updating: " + error.message);
+        if (updateError) {
+            console.error("Supabase Error:", updateError.message);
             setUpdating(false);
             return;
         }
 
-        // 3. Fetch all parts for this task to determine parent task status
         const { data: allParts, error: partsError } = await supabase
             .from('task_parts')
-            .select('*')
+            .select('designer_checked')
             .eq('task_id', part.task_id);
 
         if (partsError) {
             console.error("Error fetching all parts:", partsError.message);
         } else if (allParts) {
-            const allChecked = allParts.every(p => p.designer_checked);
+            const allChecked = allParts.every(p => p.designer_checked === true);
             const parentStatus = allChecked ? 'Done' : 'Todo';
 
-            // 4. Update the Parent Task status
             const { error: taskError } = await supabase
                 .from('tasks')
                 .update({ status: parentStatus, updated_at: new Date().toISOString() })
@@ -74,9 +56,7 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
             }
         }
 
-        // 5. Success!
-        console.log("Success!");
-        onUpdate?.({ ...part, ...updates });
+        onUpdate?.({ ...part, designer_checked: !part.designer_checked });
         router.refresh();
         setUpdating(false);
     };
