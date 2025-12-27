@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import TaskCheckbox from "./TaskCheckbox";
+import { Trash2 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 import { Task, TaskPart } from "@/types/database";
 
@@ -15,11 +18,28 @@ interface TaskCardProps {
 
 export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
     const [taskData, setTaskData] = useState<Task>(task);
+    const router = useRouter();
+
+    const handleDelete = async () => {
+        if (!window.confirm("Are you sure you want to delete this task? All associated checklist parts will also be removed.")) {
+            return;
+        }
+
+        const supabase = createClient();
+        const { error } = await supabase.from('tasks').delete().eq('id', task.id);
+
+        if (error) {
+            console.error("Error deleting task:", error.message);
+            alert("Failed to delete task: " + error.message);
+        } else {
+            router.refresh();
+        }
+    };
 
     // Local update handler
-    const handleLocalPartUpdate = (updatedPart: any) => {
-        setTaskData((prevTask) => {
-            const updatedParts = (prevTask.task_parts || []).map((part) => {
+    const handleLocalPartUpdate = (updatedPart: TaskPart) => {
+        setTaskData((prevTask: Task) => {
+            const updatedParts = (prevTask.task_parts || []).map((part: TaskPart) => {
                 if (part.id !== updatedPart.id) return part;
                 return updatedPart;
             });
@@ -45,11 +65,20 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                     <h3 className="font-semibold text-discord-text truncate flex-1">
                         {taskData.title}
                     </h3>
-                    <span
-                        className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${statusColors[taskData.status]}`}
-                    >
-                        {taskData.status}
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                            onClick={handleDelete}
+                            className="p-1 text-discord-text-muted hover:text-red-400 transition-colors"
+                            title="Delete Task"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                        <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[taskData.status]}`}
+                        >
+                            {taskData.status}
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -72,7 +101,7 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
             <div className="px-4 py-2 bg-discord-dark/30 border-t border-black/10">
                 <div className="flex items-center justify-between text-xs text-discord-text-muted">
                     <span>
-                        {taskData.task_parts?.filter((p) => p.manager_approved).length || 0} /{" "}
+                        {taskData.task_parts?.filter((p: TaskPart) => p.manager_approved).length || 0} /{" "}
                         {taskData.task_parts?.length || 0} approved
                     </span>
                     <span className="text-discord-text-muted/70">
@@ -84,23 +113,30 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                     <div
                         className="h-full bg-discord-green transition-all duration-300"
                         style={{
-                            width: `${(taskData.task_parts?.length ? (taskData.task_parts.filter((p) => p.manager_approved).length / taskData.task_parts.length) * 100 : 0)}%`,
+                            width: `${(taskData.task_parts?.length ? (taskData.task_parts.filter((p: TaskPart) => p.manager_approved).length / taskData.task_parts.length) * 100 : 0)}%`,
                         }}
                     />
                 </div>
 
                 {/* Metadata Footer */}
-                <div className="mt-4 pt-2 border-t border-discord-item flex items-center justify-between">
-                    <span className="text-xs text-discord-text-muted">
-                        Created by: <span className="text-discord-text">{taskData.creator?.full_name || "Unknown"}</span>
-                    </span>
-                    <span className="text-xs text-discord-text-muted">
-                        Due: <span className="text-discord-text">
-                            {taskData.deadline
-                                ? new Date(taskData.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                                : "No date"}
+                <div className="mt-4 pt-2 border-t border-discord-item space-y-2">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs text-discord-text-muted">
+                            Created by: <span className="text-discord-text">{taskData.creator?.full_name || "Unknown"}</span>
                         </span>
-                    </span>
+                        <span className="text-xs text-discord-text-muted">
+                            Assigned to: <span className="text-discord-text">{taskData.assignee?.full_name || "Unassigned"}</span>
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs text-discord-text-muted">
+                            Due: <span className="text-discord-text">
+                                {taskData.deadline
+                                    ? new Date(taskData.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                    : "No date"}
+                            </span>
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>

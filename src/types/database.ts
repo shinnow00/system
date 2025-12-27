@@ -42,6 +42,9 @@ export interface Task {
     creator?: {
         full_name: string | null;
     };
+    assignee?: {
+        full_name: string | null;
+    };
 }
 
 export interface TaskPart {

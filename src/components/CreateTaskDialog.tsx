@@ -56,7 +56,7 @@ export default function CreateTaskDialog({
     const [referenceLink, setReferenceLink] = useState("");
 
     // Designers fields
-    const [checklistParts, setChecklistParts] = useState<ChecklistPart[]>([]);
+    const [checklistItems, setChecklistItems] = useState<string[]>([]);
     const [newPartTitle, setNewPartTitle] = useState("");
 
     // Operations fields
@@ -127,7 +127,7 @@ export default function CreateTaskDialog({
             setContentType("");
             setTov("");
             setReferenceLink("");
-            setChecklistParts([]);
+            setChecklistItems([]);
             setNewPartTitle("");
             setShippingLocation("");
             setPrice("");
@@ -141,20 +141,17 @@ export default function CreateTaskDialog({
     // Add a checklist part
     const addChecklistPart = () => {
         if (!newPartTitle.trim()) return;
-        setChecklistParts([
-            ...checklistParts,
-            { id: crypto.randomUUID(), title: newPartTitle.trim() },
-        ]);
+        setChecklistItems([...checklistItems, newPartTitle.trim()]);
         setNewPartTitle("");
     };
 
     // Remove a checklist part
-    const removeChecklistPart = (id: string) => {
-        setChecklistParts(checklistParts.filter((p) => p.id !== id));
+    const removeChecklistPart = (index: number) => {
+        setChecklistItems(checklistItems.filter((_, i) => i !== index));
     };
 
     // Handle form submission
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim()) {
             setError("Title is required");
@@ -221,7 +218,7 @@ export default function CreateTaskDialog({
                 taskObj.assigned_to = assignedTo;
             }
 
-            const { data: taskData, error: taskError } = await supabase
+            const { data: newTask, error: taskError } = await supabase
                 .from("tasks")
                 .insert(taskObj)
                 .select()
@@ -235,10 +232,10 @@ export default function CreateTaskDialog({
             }
 
             // If Target is Designers and there are checklist parts, insert them
-            if (targetDepartment === "Designers" && checklistParts.length > 0) {
-                const partsToInsert = checklistParts.map((part) => ({
-                    task_id: taskData.id,
-                    title: part.title,
+            if (targetDepartment === "Designers" && checklistItems.length > 0 && newTask) {
+                const partsToInsert = checklistItems.map((title) => ({
+                    task_id: newTask.id,
+                    title: title,
                     designer_checked: false,
                     manager_approved: false,
                 }));
@@ -297,7 +294,7 @@ export default function CreateTaskDialog({
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleCreate} className="space-y-4">
                     {/* Standard Fields */}
                     <div>
                         <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
@@ -515,18 +512,18 @@ export default function CreateTaskDialog({
                                 </div>
                             </div>
 
-                            {checklistParts.length > 0 && (
+                            {checklistItems.length > 0 && (
                                 <div className="space-y-2">
-                                    {checklistParts.map((part, index) => (
+                                    {checklistItems.map((item, index) => (
                                         <div
-                                            key={part.id}
+                                            key={`${item}-${index}`}
                                             className="flex items-center gap-2 px-3 py-2 bg-discord-dark rounded"
                                         >
                                             <span className="text-discord-text-muted text-sm">{index + 1}.</span>
-                                            <span className="flex-1 text-discord-text text-sm">{part.title}</span>
+                                            <span className="flex-1 text-discord-text text-sm">{item}</span>
                                             <button
                                                 type="button"
-                                                onClick={() => removeChecklistPart(part.id)}
+                                                onClick={() => removeChecklistPart(index)}
                                                 className="text-discord-text-muted hover:text-red-400 transition-colors"
                                             >
                                                 <X size={16} />

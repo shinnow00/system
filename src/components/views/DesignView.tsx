@@ -1,10 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { createClient } from "@/utils/supabase/client";
 import { Task, TaskPart } from "@/types/database";
 import { Loader2 } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import TaskCheckbox from "../TaskCheckbox";
+import TaskCard from "../TaskCard";
 
 interface DesignViewProps {
     userRole?: "Designer" | "Visual Manager" | "Social Media Manager" | "Account Manager" | "Admin";
@@ -20,6 +29,33 @@ export default function DesignView({
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [groupingMode, setGroupingMode] = useState<'month' | 'designer' | 'creator'>('month');
+
+    // Helper to group tasks
+    const groupTasks = (tasks: Task[], mode: string) => {
+        const groups: Record<string, Task[]> = {};
+
+        tasks.forEach((task) => {
+            let groupKey = "Other";
+
+            if (mode === 'month') {
+                groupKey = task.deadline
+                    ? format(new Date(task.deadline), "MMMM yyyy")
+                    : "📅 No Deadline";
+            } else if (mode === 'designer') {
+                groupKey = task.assignee?.full_name ? `👤 ${task.assignee.full_name}` : "👤 Unassigned";
+            } else if (mode === 'creator') {
+                groupKey = task.creator?.full_name ? `✍️ ${task.creator.full_name}` : "✍️ Unknown";
+            }
+
+            if (!groups[groupKey]) {
+                groups[groupKey] = [];
+            }
+            groups[groupKey].push(task);
+        });
+
+        return groups;
+    };
 
     // Fetch tasks from Supabase
     useEffect(() => {
@@ -32,18 +68,18 @@ export default function DesignView({
                 .select(`
                     *,
                     task_parts (*),
-                    creator:created_by ( full_name )
+                    creator:created_by ( full_name ),
+                    assignee:assigned_to ( full_name )
                 `)
                 .eq("department", "Designers");
 
             // Apply filters based on the active channel
             if (filter === "my-tasks" && currentUserId) {
-                // query = query.eq("assigned_to", currentUserId); // COLUMN MISSING IN DB
-                console.warn("DEBUG: 'my-tasks' filter requested but 'assigned_to' column is missing in DB.");
-                query = query.neq("status", "Done");
-            } else if (filter === "completed") {
-                query = query.eq("status", "Done");
+                query = query.eq("assigned_to", currentUserId).neq("status", "Done");
+            } else if (filter === "completed" && currentUserId) {
+                query = query.eq("assigned_to", currentUserId).eq("status", "Done");
             }
+            // team-board doesn't need extra filters beyond department
 
             const { data: tasksWithParts, error: tasksError } = await query.order("created_at", { ascending: false });
 
@@ -63,12 +99,12 @@ export default function DesignView({
 
     // Local update handler to keep UI in sync
     const handleLocalPartUpdate = (taskId: string, updatedPart: TaskPart) => {
-        setTasks((prevTasks) =>
-            prevTasks.map((t) => {
+        setTasks((prevTasks: Task[]) =>
+            prevTasks.map((t: Task) => {
                 if (t.id !== taskId) return t;
                 return {
                     ...t,
-                    task_parts: t.task_parts?.map((p) => {
+                    task_parts: t.task_parts?.map((p: TaskPart) => {
                         if (p.id !== updatedPart.id) return p;
                         return updatedPart;
                     }),
@@ -117,90 +153,71 @@ export default function DesignView({
         );
     }
 
+    const currentGroupingMode = filter === "my-tasks" ? "month" : groupingMode;
+    const groupedTasks = groupTasks(tasks, currentGroupingMode);
+
     return (
         <div className="max-w-6xl">
             {/* Page Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-discord-text mb-2">
-                    Designer Task Board
-                </h1>
-                <p className="text-discord-text-muted">
-                    Check off completed parts. Visual Managers can approve designer work.
-                    <span className="ml-2 text-xs text-discord-blurple">Role: {userRole}</span>
-                </p>
+            <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-discord-text mb-2">
+                        Designer Task Board
+                    </h1>
+                    <p className="text-discord-text-muted">
+                        Check off completed parts. Visual Managers can approve designer work.
+                        <span className="ml-2 text-xs text-discord-blurple">Role: {userRole}</span>
+                    </p>
+                </div>
+
+                {filter === "team-board" && (
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-discord-text-muted uppercase tracking-wide">
+                            Group By:
+                        </span>
+                        <Select
+                            value={groupingMode}
+                            onValueChange={(val: any) => setGroupingMode(val)}
+                        >
+                            <SelectTrigger className="w-[180px] bg-discord-sidebar border-discord-dark text-discord-text text-sm h-9">
+                                <SelectValue placeholder="Group by..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-discord-sidebar border-discord-dark">
+                                <SelectItem value="month" className="text-discord-text focus:bg-discord-item">
+                                    Month (Deadline)
+                                </SelectItem>
+                                <SelectItem value="designer" className="text-discord-text focus:bg-discord-item">
+                                    Designer (Assignee)
+                                </SelectItem>
+                                <SelectItem value="creator" className="text-discord-text focus:bg-discord-item">
+                                    Creator
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
             </div>
 
-            {/* Task Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {tasks.map((task) => (
-                    <div
-                        key={task.id}
-                        className="bg-discord-sidebar rounded-lg overflow-hidden border-l-4 border-discord-blurple"
-                    >
-                        {/* Card Header */}
-                        <div className="px-4 py-3 border-b border-black/20">
-                            <div className="flex items-center justify-between gap-3">
-                                <h3 className="font-semibold text-discord-text truncate flex-1">
-                                    {task.title}
-                                </h3>
-                                <span
-                                    className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${statusColors[task.status]}`}
-                                >
-                                    {task.status}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="p-3 space-y-2">
-                            {!task.task_parts || task.task_parts.length === 0 ? (
-                                <p className="text-xs text-discord-text-muted italic px-2 py-1">No parts linked</p>
-                            ) : (
-                                task.task_parts?.map((part) => (
-                                    <TaskCheckbox
-                                        key={part.id}
-                                        part={part}
-                                        userRole={userRole}
-                                        onUpdate={(updatedPart) => handleLocalPartUpdate(task.id, updatedPart)}
-                                    />
-                                ))
-                            )}
-                        </div>
-
-                        {/* Card Footer */}
-                        <div className="px-4 py-2 bg-discord-dark/30 border-t border-black/10">
-                            <div className="flex items-center justify-between text-xs text-discord-text-muted">
-                                <span>
-                                    {task.task_parts?.filter((p) => p.manager_approved).length || 0} /{" "}
-                                    {task.task_parts?.length || 0} approved
-                                </span>
-                            </div>
-                            <div className="mt-1.5 h-1 bg-discord-dark rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-discord-green transition-all duration-300"
-                                    style={{
-                                        width: `${task.task_parts?.length
-                                            ? (task.task_parts.filter((p) => p.manager_approved).length /
-                                                task.task_parts.length) *
-                                            100
-                                            : 0
-                                            }%`,
+            {/* Grouped Tasks */}
+            <div className="space-y-12">
+                {Object.entries(groupedTasks).map(([groupName, groupTasks]) => (
+                    <div key={groupName}>
+                        <h2 className="text-xl font-bold text-discord-text mb-4 mt-8 flex items-center gap-2">
+                            {groupName}
+                            <span className="text-xs font-normal text-discord-text-muted bg-discord-dark px-2 py-0.5 rounded-full">
+                                {groupTasks.length}
+                            </span>
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {groupTasks.map((task) => (
+                                <TaskCard
+                                    key={task.id}
+                                    task={task}
+                                    onTaskUpdate={(updatedTask: Task) => {
+                                        setTasks((prev: Task[]) => prev.map((t: Task) => t.id === updatedTask.id ? updatedTask : t));
                                     }}
                                 />
-                            </div>
-
-                            {/* Metadata Footer */}
-                            <div className="mt-4 pt-2 border-t border-discord-item flex items-center justify-between">
-                                <span className="text-xs text-discord-text-muted">
-                                    Created by: <span className="text-discord-text">{task.creator?.full_name || "Unknown"}</span>
-                                </span>
-                                <span className="text-xs text-discord-text-muted">
-                                    Due: <span className="text-discord-text">
-                                        {task.deadline
-                                            ? new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                                            : "No date"}
-                                    </span>
-                                </span>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 ))}

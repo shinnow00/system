@@ -38,7 +38,7 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
             updates.designer_checked = !part.designer_checked;
         }
 
-        // 2. Send to Supabase
+        // 2. Send update to Supabase for the current part
         const { error } = await supabase
             .from('task_parts')
             .update(updates)
@@ -47,13 +47,37 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
         if (error) {
             console.error("Supabase Error:", error.message);
             alert("Error updating: " + error.message);
-        } else {
-            console.log("Success!");
-            // Update local state in parent
-            onUpdate?.({ ...part, ...updates });
-            router.refresh(); // <--- CRITICAL: Refreshes the UI to show the check
+            setUpdating(false);
+            return;
         }
 
+        // 3. Fetch all parts for this task to determine parent task status
+        const { data: allParts, error: partsError } = await supabase
+            .from('task_parts')
+            .select('*')
+            .eq('task_id', part.task_id);
+
+        if (partsError) {
+            console.error("Error fetching all parts:", partsError.message);
+        } else if (allParts) {
+            const allChecked = allParts.every(p => p.designer_checked);
+            const parentStatus = allChecked ? 'Done' : 'Todo';
+
+            // 4. Update the Parent Task status
+            const { error: taskError } = await supabase
+                .from('tasks')
+                .update({ status: parentStatus, updated_at: new Date().toISOString() })
+                .eq('id', part.task_id);
+
+            if (taskError) {
+                console.error("Error updating parent task status:", taskError.message);
+            }
+        }
+
+        // 5. Success!
+        console.log("Success!");
+        onUpdate?.({ ...part, ...updates });
+        router.refresh();
         setUpdating(false);
     };
 
