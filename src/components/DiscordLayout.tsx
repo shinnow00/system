@@ -7,56 +7,56 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
 // Department type
-export type Department = "Designers" | "Social" | "Account Managers" | "Hr" | "Operations" | "SuperAdmin" | "Home";
+export type Department = "design" | "social" | "accounts" | "hr" | "ops" | "superadmin" | "home";
 
 // Department icons for the server rail
 const departments: { id: Department; icon: typeof Home; name: string; color: string }[] = [
-    { id: "Designers", icon: Users, name: "Designers", color: "bg-discord-green" },
-    { id: "Social", icon: Instagram, name: "Social Media", color: "bg-pink-500" },
-    { id: "Account Managers", icon: Briefcase, name: "Account Managers", color: "bg-orange-500" },
-    { id: "Hr", icon: Cog, name: "HR Department", color: "bg-blue-500" },
-    { id: "Operations", icon: Truck, name: "Operations", color: "bg-yellow-600" },
+    { id: "design", icon: Users, name: "Designers", color: "bg-discord-green" },
+    { id: "social", icon: Instagram, name: "Social Media", color: "bg-pink-500" },
+    { id: "accounts", icon: Briefcase, name: "Account Managers", color: "bg-orange-500" },
+    { id: "hr", icon: Cog, name: "HR Department", color: "bg-blue-500" },
+    { id: "ops", icon: Truck, name: "Operations", color: "bg-yellow-600" },
 ];
 
 // Channels config per department
 const channelsByDepartment: Record<Department, { id: string; name: string; type: "text" | "voice" }[]> = {
-    Designers: [
+    design: [
         { id: "my-tasks", name: "my-tasks", type: "text" },
         { id: "team-board", name: "team-board", type: "text" },
         { id: "completed", name: "completed", type: "text" },
     ],
-    Social: [
+    social: [
         { id: "calendar", name: "calendar", type: "text" },
         { id: "content-grid", name: "content-grid", type: "text" },
         { id: "analytics", name: "analytics", type: "text" },
     ],
-    "Account Managers": [
+    accounts: [
         { id: "clients", name: "clients", type: "text" },
         { id: "deals", name: "deals", type: "text" },
     ],
-    Hr: [
+    hr: [
         { id: "attendance", name: "attendance", type: "text" },
         { id: "payroll", name: "payroll", type: "text" },
     ],
-    Operations: [
+    ops: [
         { id: "tracking", name: "tracking", type: "text" },
         { id: "logistics", name: "logistics", type: "text" },
     ],
-    SuperAdmin: [
+    superadmin: [
         { id: "user-management", name: "user-management", type: "text" },
         { id: "system-logs", name: "system-logs", type: "text" },
     ],
-    Home: [],
+    home: [],
 };
 
 const departmentTitles: Record<Department, string> = {
-    Designers: "Design Team",
-    Social: "Social Media",
-    "Account Managers": "Account Management",
-    Hr: "HR Department",
-    Operations: "Operations",
-    SuperAdmin: "Super Admin",
-    Home: "Direct Messages",
+    design: "Design Team",
+    social: "Social Media",
+    accounts: "Account Management",
+    hr: "HR Department",
+    ops: "Operations",
+    superadmin: "Super Admin",
+    home: "Direct Messages",
 };
 
 interface DiscordLayoutProps {
@@ -91,7 +91,7 @@ export default function DiscordLayout({
     const [headerOtherName, setHeaderOtherName] = (require("react").useState)(null);
 
     require("react").useEffect(() => {
-        if (activeDepartment === "Home") {
+        if (activeDepartment === "home") {
             const fetchProfiles = async () => {
                 const supabase = createClient();
                 const { data } = await supabase.from("profiles").select("*");
@@ -108,7 +108,7 @@ export default function DiscordLayout({
     }, [activeDepartment, userProfile?.id]);
 
     require("react").useEffect(() => {
-        if (activeDepartment === "Home" && currentActiveChannelId !== "general" && currentActiveChannelId?.includes("_")) {
+        if (activeDepartment === "home" && currentActiveChannelId !== "general" && currentActiveChannelId?.includes("_")) {
             const parts = currentActiveChannelId.split("_");
             const otherId = parts.find(id => id !== userProfile?.id);
             if (otherId) {
@@ -142,8 +142,8 @@ export default function DiscordLayout({
             <div className="flex flex-col items-center w-[72px] bg-discord-dark py-3 gap-2 flex-shrink-0">
                 {/* Custom Home Button Logo */}
                 <button
-                    onClick={() => onDepartmentChange("Home")}
-                    className={`w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-2 hover:rounded-xl transition-all duration-200 group overflow-hidden ${activeDepartment === "Home" ? "rounded-xl" : "rounded-2xl"}`}
+                    onClick={() => onDepartmentChange("home")}
+                    className={`w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-2 hover:rounded-xl transition-all duration-200 group overflow-hidden ${activeDepartment === "home" ? "rounded-xl" : "rounded-2xl"}`}
                 >
                     <img src="/logo.svg" alt="Ultimate" className="w-10 h-10 object-contain" />
                 </button>
@@ -157,7 +157,15 @@ export default function DiscordLayout({
                         // Admin and Shadow users see all departments
                         if (userProfile?.role === "Admin" || isShadow) return true;
                         // Others only see their own department
-                        return dept.id === userProfile?.department;
+                        const deptIdMap: Record<string, Department> = {
+                            'Designers': 'design',
+                            'Social Media': 'social',
+                            'Account Managers': 'accounts',
+                            'Hr': 'hr',
+                            'Operations': 'ops'
+                        };
+                        const userDeptId = userProfile?.department ? (deptIdMap[userProfile.department] || userProfile.department) : null;
+                        return dept.id === userDeptId;
                     })
                     .map((dept) => {
                         const Icon = dept.icon;
@@ -194,12 +202,12 @@ export default function DiscordLayout({
                         <div className="w-8 h-0.5 bg-discord-sidebar rounded-full mb-1" />
                         <div className="relative group">
                             <div
-                                className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-1 bg-white rounded-r-full transition-all duration-200 ${activeDepartment === "SuperAdmin" ? "h-10" : "h-0 group-hover:h-5"
+                                className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-1 bg-white rounded-r-full transition-all duration-200 ${activeDepartment === "superadmin" ? "h-10" : "h-0 group-hover:h-5"
                                     }`}
                             />
                             <button
-                                onClick={() => onDepartmentChange("SuperAdmin")}
-                                className={`w-12 h-12 flex items-center justify-center transition-all duration-200 ${activeDepartment === "SuperAdmin"
+                                onClick={() => onDepartmentChange("superadmin")}
+                                className={`w-12 h-12 flex items-center justify-center transition-all duration-200 ${activeDepartment === "superadmin"
                                     ? "bg-red-500 rounded-xl"
                                     : "bg-discord-bg rounded-3xl hover:rounded-xl hover:bg-red-500"
                                     }`}
@@ -219,7 +227,7 @@ export default function DiscordLayout({
                     <h2 className="font-semibold text-discord-text truncate flex-1">
                         {departmentTitles[activeDepartment]}
                     </h2>
-                    {onCreateTask && activeDepartment !== "SuperAdmin" && (
+                    {onCreateTask && activeDepartment !== "superadmin" && (
                         <button
                             onClick={onCreateTask}
                             className="w-6 h-6 flex items-center justify-center rounded hover:bg-discord-item transition-colors text-discord-text-muted hover:text-discord-text"
@@ -249,7 +257,7 @@ export default function DiscordLayout({
 
                     <div className="h-px bg-discord-item mx-2 my-2 opacity-30" />
 
-                    {activeDepartment === "Home" ? (
+                    {activeDepartment === "home" ? (
                         /* DM List */
                         <div className="mb-4">
                             <div className="flex items-center gap-1 text-xs font-semibold text-discord-text-muted uppercase tracking-wide mb-1 px-1">
@@ -358,7 +366,7 @@ export default function DiscordLayout({
                     </h3>
                     <div className="h-6 w-px bg-discord-text-muted/30 mx-2" />
                     <p className="text-sm text-discord-text-muted truncate">
-                        {currentActiveChannelId === "general" ? "Global Team Chat" : activeDepartment === "Home" ? "Private Conversation" : `${departmentTitles[activeDepartment]} workspace`}
+                        {currentActiveChannelId === "general" ? "Global Team Chat" : activeDepartment === "home" ? "Private Conversation" : `${departmentTitles[activeDepartment]} workspace`}
                     </p>
                 </div>
 

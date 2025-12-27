@@ -55,6 +55,7 @@ export interface TaskPart {
     manager_approved: boolean;
     checked_by: string | null;
     approved_by: string | null;
+    meta_data?: Record<string, any> | null;
     created_at: string;
     updated_at: string;
 }

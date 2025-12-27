@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Task } from "@/types/database";
-import { Instagram, Linkedin, ExternalLink, Loader2, Video, Image, LayoutGrid } from "lucide-react";
+import { Instagram, Linkedin, ExternalLink, Loader2, Video, Image, LayoutGrid, CheckCircle2, Clock } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
+import TaskCheckbox from "@/components/TaskCheckbox";
 
 // Platform configuration with colors and icons
 const platformConfig: Record<string, { icon: typeof Instagram; color: string; bgColor: string }> = {
@@ -31,29 +33,48 @@ export default function SocialView() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const { user } = useUser();
+
     useEffect(() => {
         const fetchTasks = async () => {
+            if (!user) return;
+
             const supabase = createClient();
 
-            const { data, error: fetchError } = await supabase
+            // Broad fetch for debugging and proven logic
+            const { data: allTasks, error: fetchError } = await supabase
                 .from("tasks")
-                .select("*")
-                .eq("department", "Social")
+                .select("*, task_parts(*), creator:created_by(full_name), assignee:assigned_to(full_name)")
                 .order("created_at", { ascending: false });
 
             if (fetchError) {
-                console.error("Error fetching social tasks:", fetchError);
+                console.error("Error fetching tasks:", fetchError);
                 setError("Failed to load content");
                 setLoading(false);
                 return;
             }
 
-            setTasks(data || []);
+            // Filter locally to guarantee logic
+            const filteredTasks = (allTasks || []).filter(task => {
+                // 1. Always show Internal Social Tasks
+                if (task.department === 'Social Media') return true;
+
+                // 2. Show Designer Tasks ONLY if they originated from Social Request
+                if (task.department === 'Designers') {
+                    const meta = (task.meta_data as any) || {};
+                    return meta.origin === 'social_request';
+                }
+
+                return false;
+            });
+
+            console.log("Social Tasks:", filteredTasks);
+            setTasks(filteredTasks);
             setLoading(false);
         };
 
-        fetchTasks();
-    }, []);
+        if (user) fetchTasks();
+    }, [user]);
 
     if (loading) {
         return (
@@ -129,43 +150,84 @@ export default function SocialView() {
 
                             {/* Card Body */}
                             <div className="p-4 space-y-3">
-                                {/* Content Type */}
-                                {contentType && ContentTypeIcon && (
-                                    <div className="flex items-center gap-2 text-sm text-discord-text-muted">
-                                        <ContentTypeIcon size={16} />
-                                        <span>{contentType}</span>
+                                {/* If it has task parts (Design Request or Internal with Checklist) */}
+                                {task.task_parts && task.task_parts.length > 0 ? (
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 mb-2 text-xs font-bold text-discord-text-muted uppercase tracking-wider">
+                                            <LayoutGrid size={12} />
+                                            <span>Deliverables</span>
+                                        </div>
+                                        {task.task_parts.map((part) => (
+                                            <TaskCheckbox
+                                                key={part.id}
+                                                part={part}
+                                                onUpdate={(updatedPart) => {
+                                                    setTasks(prev => prev.map(t => {
+                                                        if (t.id !== task.id) return t;
+                                                        return {
+                                                            ...t,
+                                                            task_parts: t.task_parts?.map(p => p.id === updatedPart.id ? updatedPart : p)
+                                                        };
+                                                    }));
+                                                }}
+                                            />
+                                        ))}
                                     </div>
+                                ) : (
+                                    <>
+                                        {/* Content Type */}
+                                        {contentType && ContentTypeIcon && (
+                                            <div className="flex items-center gap-2 text-sm text-discord-text-muted">
+                                                <ContentTypeIcon size={16} />
+                                                <span>{contentType}</span>
+                                            </div>
+                                        )}
+
+                                        {/* TOV Badge */}
+                                        {tov && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-discord-text-muted">TOV:</span>
+                                                <span className="px-2 py-0.5 bg-discord-item rounded-full text-xs text-discord-text">
+                                                    {tov}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Reference Link */}
+                                        {referenceLink && (
+                                            <a
+                                                href={referenceLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-sm text-discord-blurple hover:underline"
+                                            >
+                                                <ExternalLink size={14} />
+                                                <span>View Reference</span>
+                                            </a>
+                                        )}
+                                    </>
                                 )}
 
-                                {/* TOV Badge */}
-                                {tov && (
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs text-discord-text-muted">TOV:</span>
-                                        <span className="px-2 py-0.5 bg-discord-item rounded-full text-xs text-discord-text">
-                                            {tov}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {/* Reference Link */}
-                                {referenceLink && (
-                                    <a
-                                        href={referenceLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-2 text-sm text-discord-blurple hover:underline"
-                                    >
-                                        <ExternalLink size={14} />
-                                        <span>View Reference</span>
-                                    </a>
-                                )}
-
-                                {/* Deadline */}
-                                {task.deadline && (
-                                    <div className="text-xs text-discord-text-muted">
-                                        Due: {new Date(task.deadline).toLocaleDateString()}
-                                    </div>
-                                )}
+                                {/* Deadline & Info */}
+                                <div className="pt-2 border-t border-white/5 space-y-1">
+                                    {task.deadline && (
+                                        <div className="flex items-center gap-1.5 text-xs text-discord-text-muted">
+                                            <span className="font-semibold text-[10px] uppercase">Due:</span>
+                                            <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                                        </div>
+                                    )}
+                                    {task.department === "Designers" ? (
+                                        <div className="flex items-center gap-2 text-[10px] text-discord-blurple font-bold uppercase border-l-2 border-discord-blurple pl-2 py-0.5">
+                                            <Clock size={10} />
+                                            <span>Sent to: {task.assignee?.full_name || "Designer"}</span>
+                                        </div>
+                                    ) : task.assignee && (
+                                        <div className="flex items-center gap-1.5 text-[10px] text-discord-text-muted">
+                                            <span className="uppercase font-semibold text-[8px]">Assigned to:</span>
+                                            <span className="text-discord-text font-medium">{task.assignee.full_name}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Card Footer */}
@@ -178,6 +240,6 @@ export default function SocialView() {
                     );
                 })}
             </div>
-        </div>
+        </div >
     );
 }

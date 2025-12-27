@@ -28,7 +28,7 @@ function LoadingScreen() {
 }
 
 export default function Home() {
-  const [activeDepartment, setActiveDepartment] = useState<Department>("Designers");
+  const [activeDepartment, setActiveDepartment] = useState<Department>("design");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isShadow, setIsShadow] = useState(false);
@@ -104,13 +104,13 @@ export default function Home() {
   const renderViews = () => {
     return (
       <>
-        <div className={(isGeneralChat || activeDepartment === "Home") ? "flex flex-col flex-1 h-full" : "hidden"}>
+        <div className={(isGeneralChat || activeDepartment === "home") ? "flex flex-col flex-1 h-full" : "hidden"}>
           <ChatArea userProfile={profile} channelId={currentChannel} />
         </div>
 
         {!isGeneralChat && (
           <>
-            <div className={activeDepartment === "Designers" ? "flex flex-col flex-1 h-full" : "hidden"}>
+            <div className={activeDepartment === "design" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <DesignView
                 key={`design-${refreshKey}`}
                 userRole={profile?.role}
@@ -119,23 +119,23 @@ export default function Home() {
               />
             </div>
 
-            <div className={activeDepartment === "Social" ? "flex flex-col flex-1 h-full" : "hidden"}>
+            <div className={activeDepartment === "social" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <SocialView key={`social-${refreshKey}`} />
             </div>
 
-            <div className={activeDepartment === "Account Managers" ? "flex flex-col flex-1 h-full" : "hidden"}>
+            <div className={activeDepartment === "accounts" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <AccountsView key={`accounts-${refreshKey}`} />
             </div>
 
-            <div className={activeDepartment === "Hr" ? "flex flex-col flex-1 h-full" : "hidden"}>
+            <div className={activeDepartment === "hr" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <HrView key={`hr-${refreshKey}`} />
             </div>
 
-            <div className={activeDepartment === "Operations" ? "flex flex-col flex-1 h-full" : "hidden"}>
+            <div className={activeDepartment === "ops" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <OpsView key={`ops-${refreshKey}`} />
             </div>
 
-            <div className={activeDepartment === "SuperAdmin" ? "flex flex-col flex-1 h-full" : "hidden"}>
+            <div className={activeDepartment === "superadmin" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <SuperAdminView userEmail={profile?.email} />
             </div>
           </>
@@ -161,9 +161,9 @@ export default function Home() {
         onCreateTask={() => setCreateTaskOpen(true)}
         isGeneralChat={isGeneralChat}
         onToggleGeneralChat={setIsGeneralChat}
-        activeChannel={activeDepartment === "Designers" ? designFilter : currentChannel}
+        activeChannel={activeDepartment === "design" ? designFilter : currentChannel}
         onChannelChange={(id) => {
-          if (activeDepartment === "Designers") {
+          if (activeDepartment === "design") {
             setDesignFilter(id);
           } else {
             setCurrentChannel(id);

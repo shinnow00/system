@@ -50,10 +50,12 @@ export default function CreateTaskDialog({
     const [availableUsers, setAvailableUsers] = useState<Profile[]>([]);
 
     // Social Media fields
+    const [socialTaskType, setSocialTaskType] = useState<'internal' | 'design'>('internal');
     const [platform, setPlatform] = useState("");
     const [contentType, setContentType] = useState("");
     const [tov, setTov] = useState("");
     const [referenceLink, setReferenceLink] = useState("");
+    const [deliverables, setDeliverables] = useState<{ platform: string; type: string; tov: string; refLink: string }[]>([]);
 
     // Designers fields
     const [checklistItems, setChecklistItems] = useState<string[]>([]);
@@ -71,28 +73,27 @@ export default function CreateTaskDialog({
 
     // Map internal department IDs to Database names
     const DEPT_MAP: Record<string, string> = {
-        'Designers': 'Designers',
-        'Social': 'Social Media',
-        'Account Managers': 'Account Managers',
-        'Operations': 'Operations',
-        'Hr': 'Hr',
-        'SuperAdmin': 'Admin'
+        'design': 'Designers',
+        'social': 'Social Media',
+        'accounts': 'Account Managers',
+        'ops': 'Operations',
+        'hr': 'Hr',
+        'superadmin': 'Admin'
     };
 
     // Fetch users for the "Assigned To" dropdown
     useEffect(() => {
         const fetchUsers = async () => {
             const supabase = createClient();
+
+            const isSocialDesignRequest = activeDepartment === 'social' && socialTaskType === 'design';
             const dbDept = DEPT_MAP[targetDepartment] || targetDepartment;
 
-            console.log(`DEBUG: Target Department: ${targetDepartment}, DB Search String: ${dbDept}`);
-
-            // Fetch all profiles to ensure we see what's available (helpful for debugging RLS/Mismatches)
-            // Note: browser confirmed profiles.full_name is missing.
+            // Fetch all profiles
             const { data: allProfiles, error: fetchError } = await supabase
                 .from("profiles")
                 .select("*")
-                .order("email", { ascending: true }); // Order by email since full_name is missing
+                .order("email", { ascending: true });
 
             if (fetchError) {
                 console.error("DEBUG: Error fetching users:", fetchError);
@@ -100,22 +101,27 @@ export default function CreateTaskDialog({
             }
 
             if (allProfiles) {
-                console.log("DEBUG: All profiles fetched from DB:", allProfiles);
+                let filtered;
 
-                // Filter users where department matches either the mapped name or the internal ID
-                const filtered = allProfiles.filter(u =>
-                    u.department === dbDept ||
-                    u.department === targetDepartment
-                );
+                if (isSocialDesignRequest) {
+                    // For Social Design Requests, show specific designer roles
+                    const DESIGNER_ROLES = ['2D Designer', '3D Designer', 'Motion Designer'];
+                    filtered = allProfiles.filter(u => DESIGNER_ROLES.includes(u.role));
+                } else {
+                    // Standard department-based filtering
+                    filtered = allProfiles.filter(u =>
+                        u.department === dbDept ||
+                        u.department === targetDepartment
+                    );
+                }
 
-                console.log(`DEBUG: Filtered users for ${dbDept}:`, filtered);
                 setAvailableUsers(filtered);
             } else {
                 setAvailableUsers([]);
             }
         };
         if (open) fetchUsers();
-    }, [open, targetDepartment]);
+    }, [open, targetDepartment, activeDepartment, socialTaskType]);
 
     // Reset form when dialog closes
     useEffect(() => {
@@ -132,6 +138,8 @@ export default function CreateTaskDialog({
             setShippingLocation("");
             setPrice("");
             setTargetDepartment(activeDepartment);
+            setSocialTaskType('internal');
+            setDeliverables([]);
             setClientName("");
             setCompanyName("");
             setError(null);
@@ -145,6 +153,27 @@ export default function CreateTaskDialog({
         setNewPartTitle("");
     };
 
+    // Add a deliverable (Social Design Request)
+    const addDeliverable = () => {
+        if (!platform || !contentType) return;
+        setDeliverables([...deliverables, {
+            platform,
+            type: contentType,
+            tov: tov || "N/A",
+            refLink: referenceLink || "N/A"
+        }]);
+        // Reset sub-form
+        setPlatform("");
+        setContentType("");
+        setTov("");
+        setReferenceLink("");
+    };
+
+    // Remove a deliverable
+    const removeDeliverable = (index: number) => {
+        setDeliverables(deliverables.filter((_, i) => i !== index));
+    };
+
     // Remove a checklist part
     const removeChecklistPart = (index: number) => {
         setChecklistItems(checklistItems.filter((_, i) => i !== index));
@@ -155,6 +184,11 @@ export default function CreateTaskDialog({
         e.preventDefault();
         if (!title.trim()) {
             setError("Title is required");
+            return;
+        }
+
+        if (activeDepartment === "social" && socialTaskType === "design" && !deadline) {
+            setError("Deadline is required for Design Requests");
             return;
         }
 
@@ -175,17 +209,21 @@ export default function CreateTaskDialog({
             // Build meta_data based on department
             const metaData: Record<string, unknown> = {};
 
-            if (activeDepartment === "Social") {
+            if (activeDepartment === "social") {
                 if (platform) metaData.platform = platform;
                 if (contentType) metaData.content_type = contentType;
                 if (tov) metaData.tone_of_voice = tov;
                 if (referenceLink) metaData.reference_link = referenceLink;
-            } else if (activeDepartment === "Account Managers" || targetDepartment === "Operations") {
+                if (socialTaskType === 'design') {
+                    metaData.origin = 'social_request';
+                }
+                metaData.social_task_type = socialTaskType;
+            } else if (activeDepartment === "accounts" || targetDepartment === "ops") {
                 if (shippingLocation) metaData.shipping_location = shippingLocation;
                 if (price) metaData.price = parseFloat(price) || 0;
                 if (clientName) metaData.client_name = clientName;
                 if (companyName) metaData.company_name = companyName;
-            } else if (targetDepartment === "Designers" && activeDepartment === "Operations") {
+            } else if (targetDepartment === "design" && activeDepartment === "ops") {
                 // Ops creating for Designers - pass the logistics info too
                 if (clientName) metaData.client_name = clientName;
                 if (companyName) metaData.company_name = companyName;
@@ -193,19 +231,23 @@ export default function CreateTaskDialog({
 
             // Map department names to database values
             const departmentMap: Record<Department, string> = {
-                Designers: "Designers",
-                Social: "Social",
-                "Account Managers": "Account Managers",
-                Hr: "Hr",
-                Operations: "Operations",
-                SuperAdmin: "SuperAdmin",
-                Home: "Home",
+                design: "Designers",
+                social: "Social Media",
+                accounts: "Account Managers",
+                hr: "Hr",
+                ops: "Operations",
+                superadmin: "Admin",
+                home: "Home",
             };
 
-            // Insert task - note: assigned_to is reportedly missing in DB
+            const finalTargetDept = (activeDepartment === 'social' && socialTaskType === 'design')
+                ? 'design'
+                : targetDepartment;
+
+            // Insert task
             const taskObj: any = {
                 title: title.trim(),
-                department: departmentMap[targetDepartment],
+                department: departmentMap[finalTargetDept as Department],
                 status: "Todo",
                 deadline: deadline?.toISOString() || null,
                 created_by: user.id,
@@ -232,20 +274,41 @@ export default function CreateTaskDialog({
             }
 
             // If Target is Designers and there are checklist parts, insert them
-            if (targetDepartment === "Designers" && checklistItems.length > 0 && newTask) {
-                const partsToInsert = checklistItems.map((title) => ({
-                    task_id: newTask.id,
-                    title: title,
-                    designer_checked: false,
-                    manager_approved: false,
-                }));
+            const isDesignRequest = (activeDepartment === "social" && socialTaskType === "design");
 
-                const { error: partsError } = await supabase
-                    .from("task_parts")
-                    .insert(partsToInsert);
+            if ((targetDepartment === "design" || isDesignRequest) && newTask) {
+                let partsToInsert: any[] = [];
 
-                if (partsError) {
-                    console.error("Error creating task parts:", partsError);
+                if (isDesignRequest && deliverables.length > 0) {
+                    partsToInsert = deliverables.map((d) => ({
+                        task_id: newTask.id,
+                        title: `${d.platform} - ${d.type}`,
+                        designer_checked: false,
+                        manager_approved: false,
+                        meta_data: {
+                            platform: d.platform,
+                            type: d.type,
+                            tov: d.tov,
+                            ref_link: d.refLink
+                        }
+                    }));
+                } else if (!isDesignRequest && checklistItems.length > 0) {
+                    partsToInsert = checklistItems.map((title) => ({
+                        task_id: newTask.id,
+                        title: title,
+                        designer_checked: false,
+                        manager_approved: false,
+                    }));
+                }
+
+                if (partsToInsert.length > 0) {
+                    const { error: partsError } = await supabase
+                        .from("task_parts")
+                        .insert(partsToInsert);
+
+                    if (partsError) {
+                        console.error("Error creating task parts:", partsError);
+                    }
                 }
             }
 
@@ -263,13 +326,13 @@ export default function CreateTaskDialog({
     // Get department display name
     const getDepartmentLabel = () => {
         switch (activeDepartment) {
-            case "Designers":
+            case "design":
                 return "Design Team";
-            case "Social":
+            case "social":
                 return "Social Media";
-            case "Account Managers":
+            case "accounts":
                 return "Account Management";
-            case "Operations":
+            case "ops":
                 return "Operations";
             default:
                 return "Task";
@@ -288,13 +351,39 @@ export default function CreateTaskDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                {error && (
-                    <div className="p-3 bg-red-500/20 border border-red-500/50 rounded text-red-400 text-sm">
-                        {error}
+                {/* Social Media Department Switcher */}
+                {activeDepartment === "social" && (
+                    <div className="flex bg-discord-dark p-1 rounded-lg mb-4">
+                        <button
+                            type="button"
+                            onClick={() => setSocialTaskType('internal')}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${socialTaskType === 'internal'
+                                ? "bg-discord-item text-white shadow-sm"
+                                : "text-discord-text-muted hover:text-discord-text"
+                                }`}
+                        >
+                            INTERNAL TASK
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSocialTaskType('design')}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${socialTaskType === 'design'
+                                ? "bg-discord-blurple text-white shadow-sm"
+                                : "text-discord-text-muted hover:text-discord-text"
+                                }`}
+                        >
+                            DESIGN REQUEST
+                        </button>
                     </div>
                 )}
 
                 <form onSubmit={handleCreate} className="space-y-4">
+                    {error && (
+                        <div className="p-3 bg-red-500/20 border border-red-500/50 rounded text-red-400 text-sm">
+                            {error}
+                        </div>
+                    )}
+
                     {/* Standard Fields */}
                     <div>
                         <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
@@ -305,14 +394,14 @@ export default function CreateTaskDialog({
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                            placeholder="Enter task title"
+                            placeholder={activeDepartment === "social" && socialTaskType === "design" ? "Project Name / Topic" : "Enter task title"}
                             required
                         />
                     </div>
 
                     <div>
                         <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                            Deadline
+                            Deadline {(activeDepartment === "social" && socialTaskType === "design") && <span className="text-red-400">*</span>}
                         </label>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -364,7 +453,7 @@ export default function CreateTaskDialog({
                     </div>
 
                     {/* Target Department Selection (Only for Ops View) */}
-                    {activeDepartment === "Operations" && (
+                    {activeDepartment === "ops" && (
                         <div>
                             <label className="block text-xs font-bold text-discord-blurple uppercase tracking-wide mb-2">
                                 For Which Department?
@@ -372,8 +461,8 @@ export default function CreateTaskDialog({
                             <div className="grid grid-cols-2 gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => setTargetDepartment("Operations")}
-                                    className={`px-3 py-2 rounded text-xs font-bold border transition-all ${targetDepartment === "Operations"
+                                    onClick={() => setTargetDepartment("ops")}
+                                    className={`px-3 py-2 rounded text-xs font-bold border transition-all ${targetDepartment === "ops"
                                         ? "bg-discord-blurple border-discord-blurple text-white"
                                         : "bg-discord-dark border-white/5 text-discord-text-muted"
                                         }`}
@@ -382,8 +471,8 @@ export default function CreateTaskDialog({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setTargetDepartment("Designers")}
-                                    className={`px-3 py-2 rounded text-xs font-bold border transition-all ${targetDepartment === "Designers"
+                                    onClick={() => setTargetDepartment("design")}
+                                    className={`px-3 py-2 rounded text-xs font-bold border transition-all ${targetDepartment === "design"
                                         ? "bg-discord-blurple border-discord-blurple text-white"
                                         : "bg-discord-dark border-white/5 text-discord-text-muted"
                                         }`}
@@ -395,7 +484,7 @@ export default function CreateTaskDialog({
                     )}
 
                     {/* Social Media Fields */}
-                    {activeDepartment === "Social" && (
+                    {activeDepartment === "social" && socialTaskType === "internal" && (
                         <>
                             <div className="border-t border-discord-dark pt-4">
                                 <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">
@@ -420,6 +509,9 @@ export default function CreateTaskDialog({
                                         </SelectItem>
                                         <SelectItem value="LinkedIn" className="text-discord-text focus:bg-discord-item">
                                             LinkedIn
+                                        </SelectItem>
+                                        <SelectItem value="Facebook" className="text-discord-text focus:bg-discord-item">
+                                            Facebook
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -475,8 +567,140 @@ export default function CreateTaskDialog({
                         </>
                     )}
 
+                    {/* Social Media Design Request Deliverables */}
+                    {activeDepartment === "social" && socialTaskType === "design" && (
+                        <>
+                            <div className="border-t border-discord-dark pt-4">
+                                <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">
+                                    Deliverables (Design Request)
+                                </p>
+                            </div>
+
+                            <div className="bg-discord-dark/50 p-4 rounded-lg space-y-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-discord-text-muted uppercase mb-1">
+                                        Assign to Designer
+                                    </label>
+                                    <Select value={assignedTo} onValueChange={setAssignedTo}>
+                                        <SelectTrigger className="w-full bg-discord-dark border-none text-discord-text h-9">
+                                            <SelectValue placeholder="Select Designer" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-discord-sidebar border-discord-dark">
+                                            {availableUsers.map((u: any) => (
+                                                <SelectItem key={u.id} value={u.id} className="text-discord-text">
+                                                    {u.full_name || u.email}
+                                                </SelectItem>
+                                            ))}
+                                            {availableUsers.length === 0 && (
+                                                <div className="p-2 text-xs text-discord-text-muted italic">
+                                                    No designers found
+                                                </div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-discord-text-muted uppercase mb-1">
+                                            Platform
+                                        </label>
+                                        <Select value={platform} onValueChange={setPlatform}>
+                                            <SelectTrigger className="w-full bg-discord-dark border-none text-discord-text h-9">
+                                                <SelectValue placeholder="Social" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-discord-sidebar border-discord-dark">
+                                                {['FB', 'IG', 'TikTok', 'LinkedIn'].map(p => (
+                                                    <SelectItem key={p} value={p} className="text-discord-text">{p}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-discord-text-muted uppercase mb-1">
+                                            Type
+                                        </label>
+                                        <Select value={contentType} onValueChange={setContentType}>
+                                            <SelectTrigger className="w-full bg-discord-dark border-none text-discord-text h-9">
+                                                <SelectValue placeholder="Format" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-discord-sidebar border-discord-dark">
+                                                {['Video', 'Static', 'Carousel'].map(t => (
+                                                    <SelectItem key={t} value={t} className="text-discord-text">{t}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-discord-text-muted uppercase mb-1">
+                                        TOV (Tone of Voice)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={tov}
+                                        onChange={(e) => setTov(e.target.value)}
+                                        className="w-full px-3 py-2 bg-discord-dark border-none rounded text-xs text-discord-text placeholder-discord-text-muted focus:ring-1 focus:ring-discord-blurple"
+                                        placeholder="e.g. Fun / Professional"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-discord-text-muted uppercase mb-1">
+                                        Ref Link
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={referenceLink}
+                                        onChange={(e) => setReferenceLink(e.target.value)}
+                                        className="w-full px-3 py-2 bg-discord-dark border-none rounded text-xs text-discord-text placeholder-discord-text-muted focus:ring-1 focus:ring-discord-blurple"
+                                        placeholder="https://..."
+                                    />
+                                </div>
+
+                                <Button
+                                    type="button"
+                                    onClick={addDeliverable}
+                                    className="w-full bg-discord-blurple hover:bg-discord-blurple/80 text-xs font-bold h-9"
+                                    disabled={!platform || !contentType}
+                                >
+                                    <Plus size={16} className="mr-2" />
+                                    ADD DELIVERABLE
+                                </Button>
+                            </div>
+
+                            {deliverables.length > 0 && (
+                                <div className="space-y-2 mt-3">
+                                    {deliverables.map((item, index) => (
+                                        <div
+                                            key={`${item.platform}-${index}`}
+                                            className="flex items-center gap-2 px-3 py-2 bg-discord-dark/80 rounded border border-white/5"
+                                        >
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-discord-text text-xs font-bold truncate">
+                                                    {item.platform} • {item.type}
+                                                </p>
+                                                <p className="text-discord-text-muted text-[10px] truncate">
+                                                    TOV: {item.tov}
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeDeliverable(index)}
+                                                className="text-discord-text-muted hover:text-red-400 transition-colors"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+
                     {/* Designers Fields - Checklist Parts */}
-                    {targetDepartment === "Designers" && (
+                    {targetDepartment === "design" && (
                         <>
                             <div className="border-t border-discord-dark pt-4">
                                 <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">
@@ -536,7 +760,7 @@ export default function CreateTaskDialog({
                     )}
 
                     {/* Operations/Account Managers Fields */}
-                    {(activeDepartment === "Account Managers" || targetDepartment === "Operations" || (activeDepartment === "Operations" && targetDepartment === "Designers")) && (
+                    {(activeDepartment === "accounts" || targetDepartment === "ops" || (activeDepartment === "ops" && targetDepartment === "design")) && (
                         <>
                             <div className="border-t border-discord-dark pt-4">
                                 <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">
@@ -571,7 +795,7 @@ export default function CreateTaskDialog({
                                 </div>
                             </div>
 
-                            {(targetDepartment === "Operations" || activeDepartment === "Account Managers") && (
+                            {(targetDepartment === "ops" || activeDepartment === "accounts") && (
                                 <>
                                     <div>
                                         <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
