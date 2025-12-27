@@ -12,6 +12,8 @@ interface TaskCheckboxProps {
     onUpdate?: (updatedPart: TaskPart) => void;
 }
 
+const MANAGER_ROLES = ['Visual Manager', 'Admin', 'Super-Admin'];
+
 export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxProps) {
     const [updating, setUpdating] = useState(false);
     const router = useRouter();
@@ -22,11 +24,32 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
         console.log("Clicking part:", part.id); // Debug Log
         setUpdating(true);
 
+        const isManager = MANAGER_ROLES.includes(userRole);
+        const updates: any = {};
+
+        if (isManager) {
+            // MANAGER LOGIC:
+            // If it's already Green (Approved), turn it OFF (reset to false/false).
+            // If it's Blue or Empty, turn it GREEN (true/true).
+            if (part.manager_approved) {
+                updates.manager_approved = false;
+                updates.designer_checked = false; // Reset completely
+            } else {
+                updates.manager_approved = true;
+                updates.designer_checked = true; // Force both to true
+            }
+        } else {
+            // DESIGNER LOGIC:
+            // Can only toggle "designer_checked".
+            // Cannot touch "manager_approved".
+            updates.designer_checked = !part.designer_checked;
+        }
+
         const supabase = createClient();
 
         const { error: updateError } = await supabase
             .from('task_parts')
-            .update({ designer_checked: !part.designer_checked })
+            .update(updates)
             .eq('id', part.id);
 
         if (updateError) {
@@ -37,13 +60,14 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
 
         const { data: allParts, error: partsError } = await supabase
             .from('task_parts')
-            .select('designer_checked')
+            .select('designer_checked, manager_approved')
             .eq('task_id', part.task_id);
 
         if (partsError) {
             console.error("Error fetching all parts:", partsError.message);
         } else if (allParts) {
-            const allChecked = allParts.every(p => p.designer_checked === true);
+            // Use manager_approved for determining the final status
+            const allChecked = allParts.every(p => p.manager_approved === true || p.designer_checked === true);
             const parentStatus = allChecked ? 'Done' : 'Todo';
 
             const { error: taskError } = await supabase
@@ -56,7 +80,7 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
             }
         }
 
-        onUpdate?.({ ...part, designer_checked: !part.designer_checked });
+        onUpdate?.({ ...part, ...updates });
         router.refresh();
         setUpdating(false);
     };
