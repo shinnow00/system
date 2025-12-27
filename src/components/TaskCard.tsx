@@ -8,8 +8,7 @@ import { useRouter } from "next/navigation";
 
 import { Task, TaskPart } from "@/types/database";
 
-// User Role - Change this to test different behaviors
-export const USER_ROLE: "Designer" | "Visual Manager" = "Visual Manager";
+// User Role - Removed mock data
 
 interface TaskCardProps {
     task: Task;
@@ -90,7 +89,6 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                         <TaskCheckbox
                             key={part.id}
                             part={part}
-                            userRole={USER_ROLE}
                             onUpdate={handleLocalPartUpdate}
                         />
                     ))
@@ -105,7 +103,7 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                         {taskData.task_parts?.length || 0} approved
                     </span>
                     <span className="text-discord-text-muted/70">
-                        Role: {USER_ROLE}
+                        {/* Role displayed via real context inside Checkbox */}
                     </span>
                 </div>
                 {/* Progress Bar */}

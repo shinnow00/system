@@ -5,18 +5,24 @@ import { CheckSquare, Loader2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { TaskPart } from "@/types/database";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
 
 interface TaskCheckboxProps {
     part: TaskPart;
-    userRole: string;
     onUpdate?: (updatedPart: TaskPart) => void;
 }
 
 const MANAGER_ROLES = ['Visual Manager', 'Admin', 'Super-Admin'];
 
-export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxProps) {
+export default function TaskCheckbox({ part, onUpdate }: TaskCheckboxProps) {
+    const { user } = useUser();
     const [updating, setUpdating] = useState(false);
     const router = useRouter();
+
+    if (!user) return null; // Safety check
+
+    console.log("REAL DB ROLE:", user.role);
+    console.log("Is Manager?", MANAGER_ROLES.includes(user.role));
 
     const handleCheck = async () => {
         if (updating) return;
@@ -24,24 +30,23 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
         console.log("Clicking part:", part.id); // Debug Log
         setUpdating(true);
 
-        const isManager = MANAGER_ROLES.includes(userRole);
+        const isManager = MANAGER_ROLES.includes(user.role);
         const updates: any = {};
 
         if (isManager) {
-            // MANAGER LOGIC:
-            // If it's already Green (Approved), turn it OFF (reset to false/false).
-            // If it's Blue or Empty, turn it GREEN (true/true).
+            // MANAGER: Toggle Green State
+            // If currently approved, reset EVERYTHING.
+            // If not approved, set EVERYTHING to true.
             if (part.manager_approved) {
                 updates.manager_approved = false;
-                updates.designer_checked = false; // Reset completely
+                updates.designer_checked = false;
             } else {
                 updates.manager_approved = true;
-                updates.designer_checked = true; // Force both to true
+                updates.designer_checked = true;
             }
         } else {
-            // DESIGNER LOGIC:
-            // Can only toggle "designer_checked".
-            // Cannot touch "manager_approved".
+            // DESIGNER: Toggle Blue State Only
+            // Strict Rule: NEVER touch manager_approved
             updates.designer_checked = !part.designer_checked;
         }
 
@@ -86,13 +91,10 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
     };
 
     // Get checkbox styling based on state
-    const getStyle = () => {
-        if (part.manager_approved) {
-            return "bg-discord-green border-discord-green";
-        } else if (part.designer_checked) {
-            return "bg-discord-blurple border-discord-blurple";
-        }
-        return "bg-transparent border-discord-text-muted hover:border-discord-text";
+    const getCheckboxColor = () => {
+        if (part.manager_approved) return 'bg-discord-green border-discord-green'; // Fully Done
+        if (part.designer_checked) return 'bg-discord-blurple border-discord-blurple'; // Pending Review
+        return 'bg-transparent border-discord-text-muted hover:border-discord-text'; // Empty
     };
 
     return (
@@ -102,7 +104,7 @@ export default function TaskCheckbox({ part, userRole, onUpdate }: TaskCheckboxP
             className="w-full flex items-center gap-3 p-2 rounded hover:bg-discord-item/50 transition-colors text-left group"
         >
             {/* Custom Checkbox */}
-            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${getStyle()}`}>
+            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${getCheckboxColor()}`}>
                 {updating ? (
                     <Loader2 size={12} className="text-white animate-spin" />
                 ) : (
