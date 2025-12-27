@@ -449,7 +449,7 @@ export default function CreateTaskDialog({
 
                             <div>
                                 <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                                    Tone of Voice (TOV)
+                                    Text Over Vision (TOV)
                                 </label>
                                 <input
                                     type="text"
