@@ -46,8 +46,9 @@ export default function CreateTaskDialog({
     // Standard fields
     const [title, setTitle] = useState("");
     const [deadline, setDeadline] = useState<Date | undefined>();
+    const [deptUsers, setDeptUsers] = useState<Profile[]>([]);
+    const [designers, setDesigners] = useState<Profile[]>([]);
     const [assignedTo, setAssignedTo] = useState("");
-    const [availableUsers, setAvailableUsers] = useState<Profile[]>([]);
 
     // Social Media fields
     const [socialTaskType, setSocialTaskType] = useState<'internal' | 'design'>('internal');
@@ -81,47 +82,34 @@ export default function CreateTaskDialog({
         'superadmin': 'Admin'
     };
 
-    // Fetch users for the "Assigned To" dropdown
+    // Fetch users for the dropdowns
     useEffect(() => {
         const fetchUsers = async () => {
             const supabase = createClient();
 
-            const isSocialDesignRequest = activeDepartment === 'social' && socialTaskType === 'design';
+            // 1. Fetch Department Users
             const dbDept = DEPT_MAP[targetDepartment] || targetDepartment;
-
-            // Fetch all profiles
-            const { data: allProfiles, error: fetchError } = await supabase
+            const { data: deptData } = await supabase
                 .from("profiles")
                 .select("*")
-                .order("email", { ascending: true });
+                .eq('department', dbDept)
+                .order("full_name", { ascending: true });
 
-            if (fetchError) {
-                console.error("DEBUG: Error fetching users:", fetchError);
-                return;
-            }
+            setDeptUsers(deptData || []);
 
-            if (allProfiles) {
-                let filtered;
+            // 2. If in Social tab, also fetch Designers for the Bottom Dropdown
+            if (activeDepartment === 'social') {
+                const { data: designerData } = await supabase
+                    .from("profiles")
+                    .select("*")
+                    .eq('department', 'Designers')
+                    .order("full_name", { ascending: true });
 
-                if (isSocialDesignRequest) {
-                    // For Social Design Requests, show specific designer roles
-                    const DESIGNER_ROLES = ['2D Designer', '3D Designer', 'Motion Designer'];
-                    filtered = allProfiles.filter(u => DESIGNER_ROLES.includes(u.role));
-                } else {
-                    // Standard department-based filtering
-                    filtered = allProfiles.filter(u =>
-                        u.department === dbDept ||
-                        u.department === targetDepartment
-                    );
-                }
-
-                setAvailableUsers(filtered);
-            } else {
-                setAvailableUsers([]);
+                setDesigners(designerData || []);
             }
         };
         if (open) fetchUsers();
-    }, [open, targetDepartment, activeDepartment, socialTaskType]);
+    }, [open, targetDepartment, activeDepartment]);
 
     // Reset form when dialog closes
     useEffect(() => {
@@ -425,32 +413,35 @@ export default function CreateTaskDialog({
                         </Popover>
                     </div>
 
-                    <div>
-                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                            Assigned To
-                        </label>
-                        <Select value={assignedTo} onValueChange={setAssignedTo}>
-                            <SelectTrigger className="w-full bg-discord-dark border-none text-discord-text">
-                                <SelectValue placeholder="Select a user" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-discord-sidebar border-discord-dark">
-                                {availableUsers.map((user: any) => (
-                                    <SelectItem
-                                        key={user.id}
-                                        value={user.id}
-                                        className="text-discord-text focus:bg-discord-item focus:text-discord-text"
-                                    >
-                                        {user.full_name || user.email}
-                                    </SelectItem>
-                                ))}
-                                {availableUsers.length === 0 && (
-                                    <div className="p-2 text-xs text-discord-text-muted italic">
-                                        No users found in this department
-                                    </div>
-                                )}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {/* Assigned To - Hide if Social Design Request */}
+                    {!(activeDepartment === 'social' && socialTaskType === 'design') && (
+                        <div>
+                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                Assigned To
+                            </label>
+                            <Select value={assignedTo} onValueChange={setAssignedTo}>
+                                <SelectTrigger className="w-full bg-discord-dark border-none text-discord-text">
+                                    <SelectValue placeholder="Select a user" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-discord-sidebar border-discord-dark">
+                                    {deptUsers.map((user: any) => (
+                                        <SelectItem
+                                            key={user.id}
+                                            value={user.id}
+                                            className="text-discord-text focus:bg-discord-item focus:text-discord-text"
+                                        >
+                                            {user.full_name || user.email}
+                                        </SelectItem>
+                                    ))}
+                                    {deptUsers.length === 0 && (
+                                        <div className="p-2 text-xs text-discord-text-muted italic">
+                                            No users found in this department
+                                        </div>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     {/* Target Department Selection (Only for Ops View) */}
                     {activeDepartment === "ops" && (
@@ -586,12 +577,12 @@ export default function CreateTaskDialog({
                                             <SelectValue placeholder="Select Designer" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-discord-sidebar border-discord-dark">
-                                            {availableUsers.map((u: any) => (
+                                            {designers.map((u: any) => (
                                                 <SelectItem key={u.id} value={u.id} className="text-discord-text">
                                                     {u.full_name || u.email}
                                                 </SelectItem>
                                             ))}
-                                            {availableUsers.length === 0 && (
+                                            {designers.length === 0 && (
                                                 <div className="p-2 text-xs text-discord-text-muted italic">
                                                     No designers found
                                                 </div>
