@@ -29,6 +29,7 @@ interface CreateTaskDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     activeDepartment: Department;
+    socialFilter?: string;
     onTaskCreated: () => void;
 }
 
@@ -41,6 +42,7 @@ export default function CreateTaskDialog({
     open,
     onOpenChange,
     activeDepartment,
+    socialFilter = 'calendar',
     onTaskCreated,
 }: CreateTaskDialogProps) {
     // Standard fields
@@ -57,6 +59,8 @@ export default function CreateTaskDialog({
     const [tov, setTov] = useState("");
     const [referenceLink, setReferenceLink] = useState("");
     const [deliverables, setDeliverables] = useState<{ platform: string; type: string; tov: string; refLink: string }[]>([]);
+    const [shootingScriptLink, setShootingScriptLink] = useState("");
+    const [requireDesigner, setRequireDesigner] = useState(false);
 
     // Designers fields
     const [checklistItems, setChecklistItems] = useState<string[]>([]);
@@ -130,6 +134,8 @@ export default function CreateTaskDialog({
             setDeliverables([]);
             setClientName("");
             setCompanyName("");
+            setShootingScriptLink("");
+            setRequireDesigner(false);
             setError(null);
         }
     }, [open, activeDepartment]);
@@ -170,8 +176,15 @@ export default function CreateTaskDialog({
     // Handle form submission
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!title.trim()) {
+        const isShooting = activeDepartment === "social" && socialFilter === 'shooting';
+
+        if (!isShooting && !title.trim()) {
             setError("Title is required");
+            return;
+        }
+
+        if (isShooting && !clientName.trim()) {
+            setError("Client Name is required");
             return;
         }
 
@@ -198,14 +211,25 @@ export default function CreateTaskDialog({
             const metaData: Record<string, unknown> = {};
 
             if (activeDepartment === "social") {
-                if (platform) metaData.platform = platform;
-                if (contentType) metaData.content_type = contentType;
-                if (tov) metaData.tone_of_voice = tov;
-                if (referenceLink) metaData.reference_link = referenceLink;
-                if (socialTaskType === 'design') {
-                    metaData.origin = 'social_request';
+                const isShooting = socialFilter === 'shooting';
+
+                if (isShooting) {
+                    metaData.type = 'shooting';
+                    metaData.client_name = clientName;
+                    metaData.script_link = shootingScriptLink;
+                    metaData.require_designer = requireDesigner;
+                    metaData.shooting_status = 'Started';
+                } else {
+                    metaData.type = 'calendar';
+                    if (platform) metaData.platform = platform;
+                    if (contentType) metaData.content_type = contentType;
+                    if (tov) metaData.tone_of_voice = tov;
+                    if (referenceLink) metaData.reference_link = referenceLink;
+                    if (socialTaskType === 'design') {
+                        metaData.origin = 'social_request';
+                    }
+                    metaData.social_task_type = socialTaskType;
                 }
-                metaData.social_task_type = socialTaskType;
             } else if (activeDepartment === "accounts" || targetDepartment === "ops") {
                 if (shippingLocation) metaData.shipping_location = shippingLocation;
                 if (price) metaData.price = parseFloat(price) || 0;
@@ -233,8 +257,11 @@ export default function CreateTaskDialog({
                 : targetDepartment;
 
             // Insert task
+            const isShootingTask = activeDepartment === "social" && socialFilter === 'shooting';
+            const finalTitle = isShootingTask ? `[Shooting] ${clientName}` : title.trim();
+
             const taskObj: any = {
-                title: title.trim(),
+                title: finalTitle,
                 department: departmentMap[finalTargetDept as Department],
                 status: "Todo",
                 deadline: deadline?.toISOString() || null,
@@ -332,7 +359,9 @@ export default function CreateTaskDialog({
             <DialogContent className="bg-discord-sidebar border-discord-dark max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-discord-text">
-                        Create {getDepartmentLabel()} Task
+                        {activeDepartment === 'social' && socialFilter === 'shooting'
+                            ? "New Shooting Project"
+                            : `Create ${getDepartmentLabel()} Task`}
                     </DialogTitle>
                     <DialogDescription className="text-discord-text-muted">
                         Fill in the details below to create a new task.
@@ -340,7 +369,7 @@ export default function CreateTaskDialog({
                 </DialogHeader>
 
                 {/* Social Media Department Switcher */}
-                {activeDepartment === "social" && (
+                {activeDepartment === "social" && socialFilter !== 'shooting' && (
                     <div className="flex bg-discord-dark p-1 rounded-lg mb-4">
                         <button
                             type="button"
@@ -373,19 +402,65 @@ export default function CreateTaskDialog({
                     )}
 
                     {/* Standard Fields */}
-                    <div>
-                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                            Title <span className="text-red-400">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                            placeholder={activeDepartment === "social" && socialTaskType === "design" ? "Project Name / Topic" : "Enter task title"}
-                            required
-                        />
-                    </div>
+                    {!(activeDepartment === 'social' && socialFilter === 'shooting') && (
+                        <div>
+                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                Title <span className="text-red-400">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                placeholder={activeDepartment === "social" && socialTaskType === "design" ? "Project Name / Topic" : "Enter task title"}
+                                required
+                            />
+                        </div>
+                    )}
+
+                    {activeDepartment === 'social' && socialFilter === 'shooting' && (
+                        <>
+                            <div>
+                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                    Client Name <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={clientName}
+                                    onChange={(e) => setClientName(e.target.value)}
+                                    className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                    placeholder="Enter client name"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                    Script Link
+                                </label>
+                                <input
+                                    type="text"
+                                    value={shootingScriptLink}
+                                    onChange={(e) => setShootingScriptLink(e.target.value)}
+                                    className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                    placeholder="Enter script link"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-3 py-2">
+                                <input
+                                    type="checkbox"
+                                    id="require-designer"
+                                    checked={requireDesigner}
+                                    onChange={(e) => setRequireDesigner(e.target.checked)}
+                                    className="w-4 h-4 bg-discord-dark border-none rounded text-discord-blurple focus:ring-offset-0 focus:ring-0"
+                                />
+                                <label htmlFor="require-designer" className="text-sm font-medium text-discord-text cursor-pointer">
+                                    Require Designer?
+                                </label>
+                            </div>
+                        </>
+                    )}
 
                     <div>
                         <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
@@ -475,7 +550,7 @@ export default function CreateTaskDialog({
                     )}
 
                     {/* Social Media Fields */}
-                    {activeDepartment === "social" && socialTaskType === "internal" && (
+                    {activeDepartment === "social" && socialTaskType === "internal" && socialFilter !== 'shooting' && (
                         <>
                             <div className="border-t border-discord-dark pt-4">
                                 <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">

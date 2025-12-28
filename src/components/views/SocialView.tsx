@@ -6,6 +6,7 @@ import { Task } from "@/types/database";
 import { Instagram, Linkedin, ExternalLink, Loader2, Video, Image, LayoutGrid, CheckCircle2, Clock } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import TaskCheckbox from "@/components/TaskCheckbox";
+import ShootingBoard from "./ShootingBoard";
 
 // Platform configuration with colors and icons
 const platformConfig: Record<string, { icon: typeof Instagram; color: string; bgColor: string }> = {
@@ -28,7 +29,11 @@ const statusColors: Record<string, string> = {
     Done: "bg-discord-green/20 text-discord-green",
 };
 
-export default function SocialView() {
+interface SocialViewProps {
+    filter?: string;
+}
+
+export default function SocialView({ filter = 'calendar' }: SocialViewProps) {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -56,13 +61,25 @@ export default function SocialView() {
 
             // Filter locally to guarantee logic
             const filteredTasks = (allTasks || []).filter(task => {
-                // 1. Always show Internal Social Tasks
-                if (task.department === 'Social Media') return true;
+                const meta = (task.meta_data as any) || {};
+                const type = meta.type || 'calendar'; // Default to calendar if missing
 
-                // 2. Show Designer Tasks ONLY if they originated from Social Request
-                if (task.department === 'Designers') {
+                // Strict Filtering
+                if (filter === 'shooting') {
+                    return type === 'shooting';
+                }
+
+                if (filter === 'calendar') {
                     const meta = (task.meta_data as any) || {};
-                    return meta.origin === 'social_request';
+
+                    // 1. Hide Shooting Tasks
+                    if (meta.type === 'shooting') return false;
+
+                    // 2. Hide "Post Production" Design Tasks
+                    if (task.title.startsWith('Shooting Post-Prod')) return false;
+
+                    // 3. Otherwise, show normal social/design stuff
+                    return true;
                 }
 
                 return false;
@@ -74,7 +91,7 @@ export default function SocialView() {
         };
 
         if (user) fetchTasks();
-    }, [user]);
+    }, [user, filter]);
 
     if (loading) {
         return (
@@ -100,6 +117,24 @@ export default function SocialView() {
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-discord-text mb-2">Content Board</h1>
                     <p className="text-discord-text-muted">No content tasks found. Create some to get started.</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (filter === 'shooting') {
+        return <ShootingBoard />;
+    }
+
+    if (filter === 'meta-ads') {
+        return (
+            <div className="max-w-6xl">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-discord-text mb-2">Meta Ads</h1>
+                    <p className="text-discord-text-muted">Manage your Meta advertising campaigns.</p>
+                </div>
+                <div className="bg-discord-sidebar rounded-lg p-8 border border-white/5 text-center">
+                    <p className="text-discord-text-muted">Meta Ads management list placeholder</p>
                 </div>
             </div>
         );

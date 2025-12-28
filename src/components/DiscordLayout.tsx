@@ -1,10 +1,11 @@
 "use client";
 
 import { Home, Hash, Users, Truck, Plus, Cog, Shield, Instagram, Briefcase, LogOut } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Profile } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import DiscordSidebar from "./DiscordSidebar";
 
 // Department type
 export type Department = "design" | "social" | "accounts" | "hr" | "ops" | "superadmin" | "home";
@@ -70,6 +71,8 @@ interface DiscordLayoutProps {
     onToggleGeneralChat?: (isOpen: boolean) => void;
     activeChannel?: string;
     onChannelChange?: (id: string) => void;
+    socialFilter?: string;
+    setSocialFilter?: (filter: string) => void;
 }
 
 export default function DiscordLayout({
@@ -82,15 +85,17 @@ export default function DiscordLayout({
     isGeneralChat = false,
     onToggleGeneralChat,
     activeChannel: currentActiveChannelId,
-    onChannelChange
+    onChannelChange,
+    socialFilter = 'calendar',
+    setSocialFilter = () => { }
 }: DiscordLayoutProps) {
     const channels = channelsByDepartment[activeDepartment as keyof typeof channelsByDepartment] || [];
-    const activeChannel = channels[0]?.id || "general";
+    const activeChannelId = channels[0]?.id || "general";
     const router = useRouter();
-    const [profiles, setProfiles] = (require("react").useState)([]);
-    const [headerOtherName, setHeaderOtherName] = (require("react").useState)(null);
+    const [profiles, setProfiles] = useState<any[]>([]);
+    const [headerOtherName, setHeaderOtherName] = useState<string | null>(null);
 
-    require("react").useEffect(() => {
+    useEffect(() => {
         if (activeDepartment === "home") {
             const fetchProfiles = async () => {
                 const supabase = createClient();
@@ -107,7 +112,7 @@ export default function DiscordLayout({
         }
     }, [activeDepartment, userProfile?.id]);
 
-    require("react").useEffect(() => {
+    useEffect(() => {
         if (activeDepartment === "home" && currentActiveChannelId !== "general" && currentActiveChannelId?.includes("_")) {
             const parts = currentActiveChannelId.split("_");
             const otherId = parts.find(id => id !== userProfile?.id);
@@ -191,8 +196,6 @@ export default function DiscordLayout({
                         );
                     })}
 
-
-
                 {/* Spacer to push Shadow Admin to bottom */}
                 <div className="flex-1" />
 
@@ -221,140 +224,22 @@ export default function DiscordLayout({
             </div>
 
             {/* Channel Sidebar */}
-            <div className="flex flex-col w-60 bg-discord-sidebar flex-shrink-0">
-                {/* Server Header */}
-                <div className="h-12 px-4 flex items-center justify-between border-b border-black/20 shadow-sm">
-                    <h2 className="font-semibold text-discord-text truncate flex-1">
-                        {departmentTitles[activeDepartment]}
-                    </h2>
-                    {onCreateTask && activeDepartment !== "superadmin" && (
-                        <button
-                            onClick={onCreateTask}
-                            className="w-6 h-6 flex items-center justify-center rounded hover:bg-discord-item transition-colors text-discord-text-muted hover:text-discord-text"
-                            title="Create Task"
-                        >
-                            <Plus size={18} />
-                        </button>
-                    )}
-                </div>
-
-                {/* Channel List */}
-                <div className="flex-1 overflow-y-auto px-2 py-4">
-                    {/* General Chat Link (Always available or only in Home?) - User said "At the very top of the DM User List, add a static entry: # General" */}
-                    <button
-                        onClick={() => {
-                            onToggleGeneralChat?.(true);
-                            onChannelChange?.("general");
-                        }}
-                        className={`w-full flex items-center gap-1.5 px-2 py-1.5 mb-2 rounded text-left transition-colors ${isGeneralChat || currentActiveChannelId === "general"
-                            ? "bg-discord-item text-discord-text"
-                            : "text-discord-text-muted hover:text-discord-text hover:bg-discord-item/50"
-                            }`}
-                    >
-                        <Hash size={20} className="flex-shrink-0 text-discord-text-muted" />
-                        <span className="truncate text-sm font-medium"># General Chat</span>
-                    </button>
-
-                    <div className="h-px bg-discord-item mx-2 my-2 opacity-30" />
-
-                    {activeDepartment === "home" ? (
-                        /* DM List */
-                        <div className="mb-4">
-                            <div className="flex items-center gap-1 text-xs font-semibold text-discord-text-muted uppercase tracking-wide mb-1 px-1">
-                                Direct Messages
-                            </div>
-                            {profiles.map((profile: any) => {
-                                const dmId = getDmId(profile.id);
-                                const isActive = currentActiveChannelId === dmId;
-                                return (
-                                    <button
-                                        key={profile.id}
-                                        onClick={() => {
-                                            onToggleGeneralChat?.(false);
-                                            onChannelChange?.(dmId);
-                                        }}
-                                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors group ${isActive
-                                            ? "bg-discord-item text-discord-text"
-                                            : "text-discord-text-muted hover:text-discord-text hover:bg-discord-item/50"
-                                            }`}
-                                    >
-                                        <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center flex-shrink-0">
-                                            <span className="text-white text-xs font-medium">
-                                                {profile.full_name?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || "U"}
-                                            </span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">
-                                                {profile.full_name || profile.email.split('@')[0]}
-                                            </p>
-                                            <p className="text-[10px] text-discord-text-muted truncate group-hover:text-discord-text">
-                                                {profile.email}
-                                            </p>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        /* Navigation Category (Department specific) */
-                        <div className="mb-4">
-                            <button className="flex items-center gap-1 text-xs font-semibold text-discord-text-muted uppercase tracking-wide mb-1 px-1 hover:text-discord-text transition-colors">
-                                <svg width="12" height="12" viewBox="0 0 24 24" className="fill-current">
-                                    <path d="M7 10l5 5 5-5H7z" />
-                                </svg>
-                                Navigation
-                            </button>
-                            {channels
-                                .filter((c) => c.type === "text")
-                                .map((channel) => {
-                                    const isActive = !isGeneralChat && currentActiveChannelId === channel.id;
-                                    return (
-                                        <button
-                                            key={channel.id}
-                                            onClick={() => {
-                                                onToggleGeneralChat?.(false);
-                                                onChannelChange?.(channel.id);
-                                            }}
-                                            className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-colors ${isActive
-                                                ? "bg-discord-item text-discord-text"
-                                                : "text-discord-text-muted hover:text-discord-text hover:bg-discord-item/50"
-                                                }`}
-                                        >
-                                            <Hash size={20} className="flex-shrink-0 text-discord-text-muted" />
-                                            <span className="truncate text-sm">{channel.name}</span>
-                                        </button>
-                                    );
-                                })}
-                        </div>
-                    )}
-                </div>
-
-                {/* User Panel */}
-                <div className="h-[52px] px-2 flex items-center gap-2 bg-discord-dark/50">
-                    <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                            {userProfile?.full_name?.[0]?.toUpperCase() || userProfile?.email?.[0]?.toUpperCase() || "U"}
-                        </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-discord-text truncate">
-                            {userProfile?.full_name || userProfile?.email?.split("@")[0] || "User"}
-                        </p>
-                        <p className="text-xs text-discord-text-muted truncate">
-                            {userProfile?.role || "Online"}
-                        </p>
-                    </div>
-                    <div className="flex gap-1">
-                        <button
-                            onClick={handleLogout}
-                            className="w-8 h-8 flex items-center justify-center rounded hover:bg-discord-item transition-colors"
-                            title="Sign Out"
-                        >
-                            <LogOut size={18} className="text-discord-text-muted" />
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <DiscordSidebar
+                activeDepartment={activeDepartment}
+                departmentTitles={departmentTitles}
+                onCreateTask={onCreateTask}
+                isGeneralChat={isGeneralChat}
+                onToggleGeneralChat={onToggleGeneralChat || (() => { })}
+                currentActiveChannelId={currentActiveChannelId || 'general'}
+                onChannelChange={onChannelChange || (() => { })}
+                channels={channels}
+                profiles={profiles}
+                getDmId={getDmId}
+                userProfile={userProfile}
+                handleLogout={handleLogout}
+                socialFilter={socialFilter}
+                setSocialFilter={setSocialFilter}
+            />
 
             {/* Main Content Area */}
             <div className="flex flex-col flex-1 bg-discord-bg min-w-0">

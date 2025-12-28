@@ -37,6 +37,7 @@ export default function Home() {
   const [isGeneralChat, setIsGeneralChat] = useState(false);
   const [currentChannel, setCurrentChannel] = useState("general");
   const [designFilter, setDesignFilter] = useState("my-tasks");
+  const [socialFilter, setSocialFilter] = useState('calendar');
   const router = useRouter();
 
   useEffect(() => {
@@ -120,7 +121,7 @@ export default function Home() {
             </div>
 
             <div className={activeDepartment === "social" ? "flex flex-col flex-1 h-full" : "hidden"}>
-              <SocialView key={`social-${refreshKey}`} />
+              <SocialView key={`social-${refreshKey}`} filter={socialFilter} />
             </div>
 
             <div className={activeDepartment === "accounts" ? "flex flex-col flex-1 h-full" : "hidden"}>
@@ -161,7 +162,9 @@ export default function Home() {
         onCreateTask={() => setCreateTaskOpen(true)}
         isGeneralChat={isGeneralChat}
         onToggleGeneralChat={setIsGeneralChat}
-        activeChannel={activeDepartment === "design" ? designFilter : currentChannel}
+        activeChannel={activeDepartment === "design" ? designFilter : activeDepartment === "social" ? socialFilter : currentChannel}
+        socialFilter={socialFilter}
+        setSocialFilter={setSocialFilter}
         onChannelChange={(id) => {
           if (activeDepartment === "design") {
             setDesignFilter(id);
@@ -177,6 +180,7 @@ export default function Home() {
         open={createTaskOpen}
         onOpenChange={setCreateTaskOpen}
         activeDepartment={activeDepartment}
+        socialFilter={socialFilter}
         onTaskCreated={handleTaskCreated}
       />
     </>
