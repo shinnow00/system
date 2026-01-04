@@ -30,6 +30,7 @@ export default function HrEmployeeList() {
             const { data, error } = await supabase
                 .from("profiles")
                 .select("*")
+                .neq("role", "Super-Admin")
                 .order("department", { ascending: true })
                 .order("full_name", { ascending: true });
 

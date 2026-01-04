@@ -103,7 +103,10 @@ export default function DiscordLayout({
         if (activeDepartment === "home") {
             const fetchProfiles = async () => {
                 const supabase = createClient();
-                const { data } = await supabase.from("profiles").select("*");
+                const { data } = await supabase
+                    .from("profiles")
+                    .select("*")
+                    .neq("role", "Super-Admin");
                 if (data) {
                     setProfiles(data.filter((p: any) =>
                         p.email !== "xshinnow@x.com" &&

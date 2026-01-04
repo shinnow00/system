@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Shield, Trash2, AlertTriangle, Loader2, ShieldAlert, Users, Database, Activity, UserPlus, Edit, Check, X } from "lucide-react";
+import { deleteUser } from "@/app/actions/deleteUser";
 
 interface SuperAdminViewProps {
     userEmail?: string;
@@ -41,6 +42,25 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
     // Invite dialog
     const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
+    const handleDelete = async (userId: string, email: string) => {
+        // Safety: Don't delete yourself
+        if (email === 'xshinnow@x.com') {
+            alert("You cannot delete the Shadow Admin.");
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to PERMANENTLY delete ${email}?`)) return;
+
+        const result = await deleteUser(userId);
+
+        if (result.success) {
+            // Remove from UI immediately
+            setUsers(prev => prev.filter(u => u.id !== userId));
+        } else {
+            alert("Failed to delete: " + result.message);
+        }
+    };
+
     // Security check - CRITICAL
     const isAuthorized = userEmail === SHADOW_ADMIN_EMAIL;
 
@@ -61,10 +81,15 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
             .order("created_at", { ascending: false });
 
         if (fetchError) {
-            console.error("Error fetching users:", fetchError);
+            console.error("CRITICAL SUPABASE ERROR:", fetchError);
+            console.log("Error Code:", fetchError.code);
+            console.log("Error Details:", fetchError.details);
+            console.log("Error Message:", fetchError.message);
             setError("Failed to load users");
             setLoading(false);
             return;
+        } else {
+            console.log("Successfully fetched", data?.length, "users");
         }
 
         setUsers(data || []);
@@ -331,12 +356,11 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                                                             <span>EDIT</span>
                                                         </button>
                                                         <button
-                                                            onClick={() => openDeleteDialog(user)}
-                                                            className="flex items-center gap-1 px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
-                                                            title="Soft Ban"
+                                                            onClick={() => handleDelete(user.id, user.email)}
+                                                            className="text-red-400 hover:bg-red-500/10 p-2 rounded transition-colors"
+                                                            title="Delete User"
                                                         >
-                                                            <Trash2 size={12} />
-                                                            <span>BAN</span>
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     </>
                                                 )}

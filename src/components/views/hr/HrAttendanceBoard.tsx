@@ -47,6 +47,7 @@ export default function HrAttendanceBoard() {
             const { data: profs, error: profsError } = await supabase
                 .from("profiles")
                 .select("*")
+                .neq("role", "Super-Admin")
                 .order("email", { ascending: true });
 
             if (profsError) throw profsError;
@@ -249,8 +250,8 @@ export default function HrAttendanceBoard() {
                                 key={mode}
                                 onClick={() => setFilterMode(mode)}
                                 className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${filterMode === mode
-                                        ? "bg-discord-blurple text-white shadow-sm"
-                                        : "text-discord-text-muted hover:text-discord-text hover:bg-white/5"
+                                    ? "bg-discord-blurple text-white shadow-sm"
+                                    : "text-discord-text-muted hover:text-discord-text hover:bg-white/5"
                                     }`}
                             >
                                 {mode}
