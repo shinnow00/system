@@ -52,7 +52,7 @@ export default function HrView() {
                 .from("attendance")
                 .select(`
                     *,
-                    profiles:employee_id (
+                    profiles:user_id (
                         email
                     )
                 `)
@@ -87,7 +87,7 @@ export default function HrView() {
             const { error: insertError } = await supabase
                 .from("attendance")
                 .insert({
-                    employee_id: selectedEmployee,
+                    user_id: selectedEmployee,
                     status,
                     bonus,
                     deduction,
