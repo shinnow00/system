@@ -15,6 +15,8 @@ import {
     CalendarClock
 } from "lucide-react";
 import { format, subDays, parseISO } from "date-fns";
+import EditAttendanceDialog from "./EditAttendanceDialog";
+import { Pencil } from "lucide-react";
 
 export default function HrAttendanceBoard() {
     const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -33,6 +35,10 @@ export default function HrAttendanceBoard() {
     // Filter state
     const [filterMode, setFilterMode] = useState<"Today" | "Yesterday" | "Custom">("Today");
     const [customDate, setCustomDate] = useState(format(new Date(), "yyyy-MM-dd"));
+
+    // Edit state
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editingRecord, setEditingRecord] = useState<Attendance | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -134,6 +140,11 @@ export default function HrAttendanceBoard() {
             </div>
         );
     }
+
+    const handleEditClick = (record: Attendance) => {
+        setEditingRecord(record);
+        setEditDialogOpen(true);
+    };
 
     return (
         <div className="space-y-8">
@@ -281,6 +292,7 @@ export default function HrAttendanceBoard() {
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-center">Status</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-center">Bonus</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-center">Deduction</th>
+                                <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -334,6 +346,15 @@ export default function HrAttendanceBoard() {
                                                 {record.deduction > 0 ? `${record.deduction} Days` : "-"}
                                             </span>
                                         </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button
+                                                onClick={() => handleEditClick(record)}
+                                                className="p-2 hover:bg-white/5 rounded text-discord-text-muted hover:text-discord-blurple transition-colors"
+                                                title="Edit Record"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -341,6 +362,17 @@ export default function HrAttendanceBoard() {
                     </table>
                 </div>
             </div>
+
+            <EditAttendanceDialog
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                record={editingRecord}
+                onSuccess={() => {
+                    fetchData();
+                    setSuccess(true);
+                    setTimeout(() => setSuccess(false), 3000);
+                }}
+            />
         </div>
     );
 }
