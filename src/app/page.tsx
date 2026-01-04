@@ -38,6 +38,7 @@ export default function Home() {
   const [currentChannel, setCurrentChannel] = useState("general");
   const [designFilter, setDesignFilter] = useState("my-tasks");
   const [socialFilter, setSocialFilter] = useState('calendar');
+  const [hrFilter, setHrFilter] = useState('attendance');
   const router = useRouter();
 
   useEffect(() => {
@@ -129,7 +130,7 @@ export default function Home() {
             </div>
 
             <div className={activeDepartment === "hr" ? "flex flex-col flex-1 h-full" : "hidden"}>
-              <HrView key={`hr-${refreshKey}`} />
+              <HrView key={`hr-${refreshKey}`} filter={hrFilter} />
             </div>
 
             <div className={activeDepartment === "ops" ? "flex flex-col flex-1 h-full" : "hidden"}>
@@ -162,9 +163,11 @@ export default function Home() {
         onCreateTask={() => setCreateTaskOpen(true)}
         isGeneralChat={isGeneralChat}
         onToggleGeneralChat={setIsGeneralChat}
-        activeChannel={activeDepartment === "design" ? designFilter : activeDepartment === "social" ? socialFilter : currentChannel}
+        activeChannel={activeDepartment === "design" ? designFilter : activeDepartment === "social" ? socialFilter : activeDepartment === "hr" ? hrFilter : currentChannel}
         socialFilter={socialFilter}
         setSocialFilter={setSocialFilter}
+        hrFilter={hrFilter}
+        setHrFilter={setHrFilter}
         onChannelChange={(id) => {
           if (activeDepartment === "design") {
             setDesignFilter(id);

@@ -7,13 +7,14 @@ export interface Profile {
     role: "Designer" | "Visual Manager" | "Social Media Manager" | "Account Manager" | "Admin";
     department: "Designers" | "Social" | "Account Managers" | "Hr" | "Operations";
     avatar_url: string | null;
+    salary?: number | null;
     created_at: string;
     updated_at: string;
 }
 
 export interface Attendance {
     id: string;
-    employee_id: string;
+    user_id: string;
     status: "Present" | "Absent" | "Late";
     bonus: number;
     deduction: number;

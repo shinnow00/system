@@ -19,6 +19,8 @@ interface DiscordSidebarProps {
     handleLogout: () => void;
     socialFilter: string;
     setSocialFilter: (filter: string) => void;
+    hrFilter?: string;
+    setHrFilter?: (filter: string) => void;
 }
 
 export default function DiscordSidebar({
@@ -35,7 +37,9 @@ export default function DiscordSidebar({
     userProfile,
     handleLogout,
     socialFilter,
-    setSocialFilter
+    setSocialFilter,
+    hrFilter,
+    setHrFilter
 }: DiscordSidebarProps) {
     return (
         <div className="flex flex-col w-60 bg-discord-sidebar flex-shrink-0">
@@ -135,6 +139,35 @@ export default function DiscordSidebar({
                                 >
                                     <Hash size={20} className="flex-shrink-0 text-discord-text-muted" />
                                     <span className="truncate text-sm"># {id}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                ) : activeDepartment === 'hr' ? (
+                    <div className="mb-4">
+                        <div className="flex items-center gap-1 text-xs font-semibold text-discord-text-muted uppercase tracking-wide mb-1 px-1">
+                            HR Module
+                        </div>
+                        {[
+                            { id: 'attendance', name: 'Attendance' },
+                            { id: 'employees', name: 'Employees' }
+                        ].map((channel) => {
+                            const isActive = hrFilter === channel.id;
+                            return (
+                                <button
+                                    key={channel.id}
+                                    onClick={() => {
+                                        onToggleGeneralChat(false);
+                                        if (setHrFilter) setHrFilter(channel.id);
+                                        onChannelChange(channel.id);
+                                    }}
+                                    className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-colors ${isActive
+                                        ? "bg-discord-item text-discord-text"
+                                        : "text-discord-text-muted hover:text-discord-text hover:bg-discord-item/50"
+                                        }`}
+                                >
+                                    <Hash size={20} className="flex-shrink-0 text-discord-text-muted" />
+                                    <span className="truncate text-sm"># {channel.name.toLowerCase()}</span>
                                 </button>
                             );
                         })}

@@ -73,6 +73,8 @@ interface DiscordLayoutProps {
     onChannelChange?: (id: string) => void;
     socialFilter?: string;
     setSocialFilter?: (filter: string) => void;
+    hrFilter?: string;
+    setHrFilter?: (filter: string) => void;
 }
 
 export default function DiscordLayout({
@@ -87,7 +89,9 @@ export default function DiscordLayout({
     activeChannel: currentActiveChannelId,
     onChannelChange,
     socialFilter = 'calendar',
-    setSocialFilter = () => { }
+    setSocialFilter = () => { },
+    hrFilter = 'attendance',
+    setHrFilter = () => { }
 }: DiscordLayoutProps) {
     const channels = channelsByDepartment[activeDepartment as keyof typeof channelsByDepartment] || [];
     const activeChannelId = channels[0]?.id || "general";
@@ -239,6 +243,8 @@ export default function DiscordLayout({
                 handleLogout={handleLogout}
                 socialFilter={socialFilter}
                 setSocialFilter={setSocialFilter}
+                hrFilter={hrFilter}
+                setHrFilter={setHrFilter}
             />
 
             {/* Main Content Area */}
