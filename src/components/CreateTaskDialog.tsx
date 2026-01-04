@@ -30,7 +30,7 @@ interface CreateTaskDialogProps {
     onOpenChange: (open: boolean) => void;
     activeDepartment: Department;
     socialFilter?: string;
-    onTaskCreated: () => void;
+    onTaskCreated: (task?: any) => void;
 }
 
 interface ChecklistPart {
@@ -72,6 +72,15 @@ export default function CreateTaskDialog({
     const [targetDepartment, setTargetDepartment] = useState<Department>(activeDepartment);
     const [clientName, setClientName] = useState("");
     const [companyName, setCompanyName] = useState("");
+
+    // Account Managers fields
+    const [accountMode, setAccountMode] = useState<'inbound' | 'outbound'>('inbound');
+    const [dealGranted, setDealGranted] = useState(false);
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [callDate, setCallDate] = useState<Date | undefined>();
+    const [feedback, setFeedback] = useState("");
+    const [budget, setBudget] = useState("");
+    const [services, setServices] = useState("");
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -134,6 +143,13 @@ export default function CreateTaskDialog({
             setDeliverables([]);
             setClientName("");
             setCompanyName("");
+            setAccountMode('inbound');
+            setDealGranted(false);
+            setPhoneNumber("");
+            setCallDate(undefined);
+            setFeedback("");
+            setBudget("");
+            setServices("");
             setShootingScriptLink("");
             setRequireDesigner(false);
             setError(null);
@@ -235,6 +251,17 @@ export default function CreateTaskDialog({
                 if (price) metaData.price = parseFloat(price) || 0;
                 if (clientName) metaData.client_name = clientName;
                 if (companyName) metaData.company_name = companyName;
+
+                if (activeDepartment === "accounts") {
+                    metaData.type = accountMode;
+                    metaData.deal_granted = dealGranted;
+                    if (phoneNumber) metaData.phone = phoneNumber;
+                    if (callDate) metaData.call_date = callDate;
+                    if (feedback) metaData.feedback = feedback;
+                    if (budget) metaData.budget = budget;
+                    if (services) metaData.services = services;
+                    metaData.account_status = 'Planning Phase';
+                }
             } else if (targetDepartment === "design" && activeDepartment === "ops") {
                 // Ops creating for Designers - pass the logistics info too
                 if (clientName) metaData.client_name = clientName;
@@ -258,7 +285,15 @@ export default function CreateTaskDialog({
 
             // Insert task
             const isShootingTask = activeDepartment === "social" && socialFilter === 'shooting';
-            const finalTitle = isShootingTask ? `[Shooting] ${clientName}` : title.trim();
+            const isAccountTask = activeDepartment === "accounts";
+
+            let finalTitle = title.trim();
+            if (isShootingTask) {
+                finalTitle = `[Shooting] ${clientName}`;
+            } else if (isAccountTask) {
+                const prefix = accountMode === 'inbound' ? '[Inbound]' : '[Outbound]';
+                finalTitle = `${prefix} ${clientName || 'Unspecified Client'}`;
+            }
 
             const taskObj: any = {
                 title: finalTitle,
@@ -329,7 +364,7 @@ export default function CreateTaskDialog({
 
             // Success - close dialog and refresh
             onOpenChange(false);
-            onTaskCreated();
+            onTaskCreated(newTask);
         } catch (err) {
             console.error("Unexpected error:", err);
             setError("An unexpected error occurred");
@@ -402,7 +437,7 @@ export default function CreateTaskDialog({
                     )}
 
                     {/* Standard Fields */}
-                    {!(activeDepartment === 'social' && socialFilter === 'shooting') && (
+                    {!(activeDepartment === 'social' && socialFilter === 'shooting') && activeDepartment !== 'accounts' && (
                         <div>
                             <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
                                 Title <span className="text-red-400">*</span>
@@ -462,31 +497,34 @@ export default function CreateTaskDialog({
                         </>
                     )}
 
-                    <div>
-                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                            Deadline {(activeDepartment === "social" && socialTaskType === "design") && <span className="text-red-400">*</span>}
-                        </label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item"
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
-                                    {deadline ? format(deadline, "PPP") : "Pick a date"}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark">
-                                <Calendar
-                                    mode="single"
-                                    selected={deadline}
-                                    onSelect={setDeadline}
-                                    initialFocus
-                                    className="bg-discord-sidebar text-discord-text"
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
+                    {/* Deadline - Hide for Accounts (shown in Deal Fields instead) */}
+                    {activeDepartment !== 'accounts' && (
+                        <div>
+                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                Deadline {(activeDepartment === "social" && socialTaskType === "design") && <span className="text-red-400">*</span>}
+                            </label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item"
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
+                                        {deadline ? format(deadline, "PPP") : "Pick a date"}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark">
+                                    <Calendar
+                                        mode="single"
+                                        selected={deadline}
+                                        onSelect={setDeadline}
+                                        initialFocus
+                                        className="bg-discord-sidebar text-discord-text"
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    )}
 
                     {/* Assigned To - Hide if Social Design Request */}
                     {!(activeDepartment === 'social' && socialTaskType === 'design') && (
@@ -834,34 +872,236 @@ export default function CreateTaskDialog({
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                                        Client Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={clientName}
-                                        onChange={(e) => setClientName(e.target.value)}
-                                        className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                                        placeholder="Name"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                                        Company Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={companyName}
-                                        onChange={(e) => setCompanyName(e.target.value)}
-                                        className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                                        placeholder="Company"
-                                    />
-                                </div>
-                            </div>
+                            {activeDepartment === "accounts" && (
+                                <>
+                                    <div className="flex bg-discord-dark p-1 rounded-lg mb-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setAccountMode('inbound')}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${accountMode === 'inbound'
+                                                ? "bg-discord-blurple text-white shadow-sm"
+                                                : "text-discord-text-muted hover:text-discord-text"
+                                                }`}
+                                        >
+                                            INBOUND
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAccountMode('outbound')}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${accountMode === 'outbound'
+                                                ? "bg-discord-blurple text-white shadow-sm"
+                                                : "text-discord-text-muted hover:text-discord-text"
+                                                }`}
+                                        >
+                                            OUTBOUND
+                                        </button>
+                                    </div>
 
-                            {(targetDepartment === "ops" || activeDepartment === "accounts") && (
+                                    {/* Common Inputs */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                Client Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={clientName}
+                                                onChange={(e) => setClientName(e.target.value)}
+                                                className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                                placeholder="Name"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                Company Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={companyName}
+                                                onChange={(e) => setCompanyName(e.target.value)}
+                                                className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                                placeholder="Company"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                Phone Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={phoneNumber}
+                                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                                className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                                placeholder="+1 234..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                Date of Call
+                                            </label>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        className="w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item h-10 px-3"
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
+                                                        {callDate ? format(callDate, "PPP") : <span className="text-discord-text-muted">Pick a date</span>}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={callDate}
+                                                        onSelect={setCallDate}
+                                                        initialFocus
+                                                        className="bg-discord-sidebar text-discord-text"
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                            Feedback / Notes
+                                        </label>
+                                        <textarea
+                                            value={feedback}
+                                            onChange={(e) => setFeedback(e.target.value)}
+                                            className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple min-h-[80px]"
+                                            placeholder="Enter call notes or feedback..."
+                                        />
+                                    </div>
+
+                                    {/* Outbound Logic: Deal Granted Checkbox */}
+                                    {accountMode === 'outbound' && (
+                                        <div className="flex items-center gap-3 py-4 border-b border-discord-dark/50">
+                                            <input
+                                                type="checkbox"
+                                                id="deal-granted"
+                                                checked={dealGranted}
+                                                onChange={(e) => setDealGranted(e.target.checked)}
+                                                className="w-4 h-4 bg-discord-dark border-none rounded text-discord-blurple focus:ring-offset-0 focus:ring-0"
+                                            />
+                                            <label htmlFor="deal-granted" className="text-sm font-medium text-discord-text cursor-pointer">
+                                                Deal Granted?
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {/* Deal Fields: Show if Inbound OR (Outbound + Deal Granted) */}
+                                    {(accountMode === 'inbound' || (accountMode === 'outbound' && dealGranted)) && (
+                                        <div className="bg-discord-dark/30 p-4 rounded-lg mt-4 space-y-4 border border-discord-dark">
+                                            <p className="text-xs font-bold text-green-400 uppercase tracking-wide mb-2">
+                                                Deal Details
+                                            </p>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                    Deadline (Estimated)
+                                                </label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item"
+                                                        >
+                                                            <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
+                                                            {deadline ? format(deadline, "PPP") : <span className="text-discord-text-muted">Pick a date</span>}
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={deadline}
+                                                            onSelect={setDeadline}
+                                                            initialFocus
+                                                            className="bg-discord-sidebar text-discord-text"
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                    Shipping Location
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={shippingLocation}
+                                                    onChange={(e) => setShippingLocation(e.target.value)}
+                                                    className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                                    placeholder="Address..."
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                    Budget
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={budget}
+                                                    onChange={(e) => setBudget(e.target.value)}
+                                                    className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                                    placeholder="Expected budget"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                    Services List
+                                                </label>
+                                                <textarea
+                                                    value={services}
+                                                    onChange={(e) => setServices(e.target.value)}
+                                                    className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple min-h-[60px]"
+                                                    placeholder="List requested services..."
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Standard Ops Fields (Client/Company/Ship/Price) - Only for Ops or non-account logic if needed, 
+                                but user requested specific structure for Accounts. 
+                                We'll keep the Ops logic separate. 
+                            */}
+                            {activeDepartment !== "accounts" && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                            Client Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={clientName}
+                                            onChange={(e) => setClientName(e.target.value)}
+                                            className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                            placeholder="Name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                            Company Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={companyName}
+                                            onChange={(e) => setCompanyName(e.target.value)}
+                                            className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                            placeholder="Company"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {(targetDepartment === "ops") && activeDepartment !== "accounts" && (
                                 <>
                                     <div>
                                         <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
