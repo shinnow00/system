@@ -15,6 +15,8 @@ import ChatArea from "@/components/ChatArea";
 import CreateTaskDialog from "@/components/CreateTaskDialog";
 import { Loader2 } from "lucide-react";
 
+import UnassignedView from "@/components/views/UnassignedView";
+
 // Loading component
 function LoadingScreen() {
   return (
@@ -67,8 +69,8 @@ export default function Home() {
           id: user.id,
           email: user.email || "",
           full_name: null,
-          role: "Designer",
-          department: "Designers",
+          role: null, // Default to null for unassigned handling
+          department: null,
           avatar_url: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -99,6 +101,11 @@ export default function Home() {
   // Show loading screen while checking auth
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  // Gatekeeper: Check for unassigned role
+  if (!profile?.role && !isShadow) {
+    return <UnassignedView />;
   }
 
   // Render the views - we keep them all in the DOM but hidden if not active

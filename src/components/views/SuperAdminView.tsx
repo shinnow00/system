@@ -32,12 +32,14 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
     const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    // Edit user dialog
-    const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [userToEdit, setUserToEdit] = useState<Profile | null>(null);
-    const [editing, setEditing] = useState(false);
-    const [editRole, setEditRole] = useState("");
-    const [editDept, setEditDept] = useState("");
+    // Inline Edit State
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState({
+        full_name: "",
+        role: "",
+        department: ""
+    });
+    const [saving, setSaving] = useState(false);
 
     // Invite dialog
     const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -82,14 +84,9 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
 
         if (fetchError) {
             console.error("CRITICAL SUPABASE ERROR:", fetchError);
-            console.log("Error Code:", fetchError.code);
-            console.log("Error Details:", fetchError.details);
-            console.log("Error Message:", fetchError.message);
             setError("Failed to load users");
             setLoading(false);
             return;
-        } else {
-            console.log("Successfully fetched", data?.length, "users");
         }
 
         setUsers(data || []);
@@ -134,43 +131,56 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
         }
     };
 
-    const handleUpdateUser = async () => {
-        if (!userToEdit) return;
-        setEditing(true);
+    // Inline Edit Handlers
+    const startEditing = (user: Profile) => {
+        setEditingId(user.id);
+        setEditForm({
+            full_name: user.full_name || "",
+            role: user.role || "",
+            department: user.department || ""
+        });
+    };
 
+    const cancelEditing = () => {
+        setEditingId(null);
+        setEditForm({ full_name: "", role: "", department: "" });
+    };
+
+    const saveEdit = async (userId: string) => {
+        setSaving(true);
         try {
             const supabase = createClient();
             const { error: updateError } = await supabase
                 .from("profiles")
                 .update({
-                    role: editRole,
-                    department: editDept,
+                    full_name: editForm.full_name,
+                    role: editForm.role,
+                    department: editForm.department,
                     updated_at: new Date().toISOString(),
                 })
-                .eq("id", userToEdit.id);
+                .eq("id", userId);
 
-            if (updateError) {
-                console.error("Error updating user:", updateError);
-                setError("Failed to update user");
-                setEditing(false);
-                return;
-            }
+            if (updateError) throw updateError;
 
-            setEditDialogOpen(false);
-            fetchUsers();
+            // Refresh local state without refetching for speed
+            setUsers(prev => prev.map(u =>
+                u.id === userId
+                    ? {
+                        ...u,
+                        full_name: editForm.full_name,
+                        role: editForm.role as Profile['role'],
+                        department: editForm.department as Profile['department']
+                    }
+                    : u
+            ));
+
+            setEditingId(null);
         } catch (err) {
-            console.error("Unexpected error:", err);
-            setError("An unexpected error occurred");
+            console.error("Error updating user:", err);
+            setError("Failed to update user");
         } finally {
-            setEditing(false);
+            setSaving(false);
         }
-    };
-
-    const openEditDialog = (user: Profile) => {
-        setUserToEdit(user);
-        setEditRole(user.role || "Designer");
-        setEditDept(user.department || "Designers");
-        setEditDialogOpen(true);
     };
 
     // ACCESS DENIED screen for unauthorized users
@@ -292,6 +302,7 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                         <tbody>
                             {users.map((user, index) => {
                                 const isShadowUser = user.email === SHADOW_ADMIN_EMAIL;
+                                const isEditing = editingId === user.id;
 
                                 return (
                                     <tr
@@ -316,28 +327,69 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
 
                                         {/* Name */}
                                         <td className="px-4 py-3">
-                                            <span className="text-sm text-discord-text">
-                                                {user.full_name || "—"}
-                                            </span>
+                                            {isEditing ? (
+                                                <input
+                                                    type="text"
+                                                    value={editForm.full_name}
+                                                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                                                    className="w-full bg-discord-dark border border-discord-blurple rounded px-2 py-1 text-sm focus:outline-none"
+                                                    placeholder="Full Name"
+                                                />
+                                            ) : (
+                                                <span className="text-sm text-discord-text">
+                                                    {user.full_name || "—"}
+                                                </span>
+                                            )}
                                         </td>
 
                                         {/* Role */}
                                         <td className="px-4 py-3">
-                                            <span
-                                                className={`px-2 py-0.5 rounded text-xs font-medium ${user.role === "Admin"
-                                                    ? "bg-red-500/20 text-red-400"
-                                                    : user.role === "Visual Manager"
-                                                        ? "bg-discord-blurple/20 text-discord-blurple"
-                                                        : "bg-discord-text-muted/20 text-discord-text-muted"
-                                                    }`}
-                                            >
-                                                {user.role}
-                                            </span>
+                                            {isEditing ? (
+                                                <select
+                                                    value={editForm.role}
+                                                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                                                    className="w-full bg-discord-dark border border-discord-blurple rounded px-2 py-1 text-sm focus:outline-none"
+                                                >
+                                                    <option value="">Select Role</option>
+                                                    <option value="Designer">Designer</option>
+                                                    <option value="Visual Manager">Visual Manager</option>
+                                                    <option value="Social Media Manager">Social Media Manager</option>
+                                                    <option value="Account Manager">Account Manager</option>
+                                                    <option value="Admin">Admin</option>
+                                                </select>
+                                            ) : (
+                                                <span
+                                                    className={`px-2 py-0.5 rounded text-xs font-medium ${user.role === "Admin"
+                                                        ? "bg-red-500/20 text-red-400"
+                                                        : user.role === "Visual Manager"
+                                                            ? "bg-discord-blurple/20 text-discord-blurple"
+                                                            : "bg-discord-text-muted/20 text-discord-text-muted"
+                                                        }`}
+                                                >
+                                                    {user.role || "Unassigned"}
+                                                </span>
+                                            )}
                                         </td>
 
                                         {/* Department */}
                                         <td className="px-4 py-3">
-                                            <span className="text-sm text-discord-text-muted">{user.department}</span>
+                                            {isEditing ? (
+                                                <select
+                                                    value={editForm.department}
+                                                    onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                                                    className="w-full bg-discord-dark border border-discord-blurple rounded px-2 py-1 text-sm focus:outline-none"
+                                                >
+                                                    <option value="">Select Dept</option>
+                                                    <option value="Designers">Designers</option>
+                                                    <option value="Social">Social Media</option>
+                                                    <option value="Account Managers">Account Managers</option>
+                                                    <option value="Hr">HR Department</option>
+                                                    <option value="Operations">Operations</option>
+                                                    <option value="SuperAdmin">Super Admin</option>
+                                                </select>
+                                            ) : (
+                                                <span className="text-sm text-discord-text-muted">{user.department || "—"}</span>
+                                            )}
                                         </td>
 
                                         {/* Actions */}
@@ -345,12 +397,33 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                                             <div className="flex items-center justify-center gap-2">
                                                 {isShadowUser ? (
                                                     <span className="text-xs text-discord-text-muted">Protected</span>
+                                                ) : isEditing ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => saveEdit(user.id)}
+                                                            disabled={saving}
+                                                            className="flex items-center gap-1 px-2 py-1 text-xs bg-green-500/20 text-green-500 rounded hover:bg-green-500/30 transition-colors"
+                                                            title="Save Changes"
+                                                        >
+                                                            {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                                            <span>SAVE</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEditing}
+                                                            disabled={saving}
+                                                            className="flex items-center gap-1 px-2 py-1 text-xs bg-red-500/20 text-red-500 rounded hover:bg-red-500/30 transition-colors"
+                                                            title="Cancel"
+                                                        >
+                                                            <X size={12} />
+                                                            <span>CANCEL</span>
+                                                        </button>
+                                                    </>
                                                 ) : (
                                                     <>
                                                         <button
-                                                            onClick={() => openEditDialog(user)}
+                                                            onClick={() => startEditing(user)}
                                                             className="flex items-center gap-1 px-2 py-1 text-xs bg-discord-blurple/20 text-discord-blurple rounded hover:bg-discord-blurple/30 transition-colors"
-                                                            title="Edit Role/Dept"
+                                                            title="Edit User"
                                                         >
                                                             <Edit size={12} />
                                                             <span>EDIT</span>
@@ -426,77 +499,7 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            {/* Edit User Dialog */}
-            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="bg-discord-sidebar border-discord-blurple/50 max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="text-discord-text flex items-center gap-2">
-                            <Edit size={20} className="text-discord-blurple" />
-                            Edit User Profile
-                        </DialogTitle>
-                        <DialogDescription className="text-discord-text-muted">
-                            Update permissions and department access for {userToEdit?.email}
-                        </DialogDescription>
-                    </DialogHeader>
 
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wide">
-                                Role
-                            </label>
-                            <select
-                                value={editRole}
-                                onChange={(e) => setEditRole(e.target.value)}
-                                className="w-full bg-discord-dark border-none rounded p-2 text-discord-text focus:ring-1 focus:ring-discord-blurple outline-none"
-                            >
-                                <option value="Designer">Designer</option>
-                                <option value="Visual Manager">Visual Manager</option>
-                                <option value="Social Media Manager">Social Media Manager</option>
-                                <option value="Account Manager">Account Manager</option>
-                                <option value="Admin">Admin</option>
-                            </select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wide">
-                                Department
-                            </label>
-                            <select
-                                value={editDept}
-                                onChange={(e) => setEditDept(e.target.value)}
-                                className="w-full bg-discord-dark border-none rounded p-2 text-discord-text focus:ring-1 focus:ring-discord-blurple outline-none"
-                            >
-                                <option value="Designers">Designers</option>
-                                <option value="Social">Social Media</option>
-                                <option value="Account Managers">Account Managers</option>
-                                <option value="Hr">HR Department</option>
-                                <option value="SuperAdmin">Super Admin</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setEditDialogOpen(false)}
-                            className="bg-discord-item border-none text-discord-text hover:bg-discord-item/70"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleUpdateUser}
-                            disabled={editing}
-                            className="bg-discord-blurple hover:bg-discord-blurple/80 text-white"
-                        >
-                            {editing ? (
-                                <Loader2 className="animate-spin h-4 w-4" />
-                            ) : (
-                                "Save Changes"
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
             {/* Invite Member Dialog */}
             <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
