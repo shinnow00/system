@@ -72,7 +72,7 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="bg-discord-sidebar w-full max-w-4xl max-h-[90vh] rounded-xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
+            <div className="bg-discord-sidebar w-[95vw] md:max-w-4xl max-h-[95vh] rounded-xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
 
                 {/* Header */}
                 <div className="p-6 border-b border-white/5 flex items-center justify-between bg-discord-sidebar">

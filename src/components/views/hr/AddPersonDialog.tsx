@@ -69,7 +69,7 @@ export default function AddPersonDialog({
             .from("profiles")
             .select("id, full_name, email")
             .order("full_name");
-        setProfiles(data || []);
+        setProfiles((data || []) as Profile[]);
     };
 
     const resetForm = () => {
@@ -133,7 +133,7 @@ export default function AddPersonDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-discord-sidebar border-white/10 text-discord-text max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="bg-discord-sidebar border-white/10 text-discord-text w-[95vw] sm:max-w-md max-h-[95vh] overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         {person ? <User className="text-discord-blurple" /> : <Plus className="text-discord-blurple" />}

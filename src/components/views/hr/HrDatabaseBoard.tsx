@@ -127,7 +127,7 @@ export default function HrDatabaseBoard() {
                 </div>
 
                 {/* Table */}
-                <div className="overflow-hidden rounded-lg border border-white/5">
+                <div className="overflow-x-auto rounded-lg border border-white/5">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-discord-dark/50">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Department } from "@/components/DiscordLayout";
+import { Department } from "@/utils/departments";
 import { Profile } from "@/types/database";
 import {
     Dialog,
@@ -69,9 +69,13 @@ export default function CreateTaskDialog({
     // Operations fields
     const [shippingLocation, setShippingLocation] = useState("");
     const [price, setPrice] = useState("");
-    const [targetDepartment, setTargetDepartment] = useState<Department>(activeDepartment);
     const [clientName, setClientName] = useState("");
     const [companyName, setCompanyName] = useState("");
+    const [opsType, setOpsType] = useState<'pricing' | 'order'>('pricing');
+    const [opsItems, setOpsItems] = useState<{ name: string; qty: number; price: number }[]>([
+        { name: "", qty: 1, price: 0 }
+    ]);
+    const opsGrandTotal = opsItems.reduce((acc, item) => acc + (item.qty * item.price), 0);
 
     // Account Managers fields
     const [accountMode, setAccountMode] = useState<'inbound' | 'outbound'>('inbound');
@@ -101,7 +105,7 @@ export default function CreateTaskDialog({
             const supabase = createClient();
 
             // 1. Fetch Department Users
-            const dbDept = DEPT_MAP[targetDepartment] || targetDepartment;
+            const dbDept = DEPT_MAP[activeDepartment] || activeDepartment;
             const { data: deptData } = await supabase
                 .from("profiles")
                 .select("*")
@@ -110,7 +114,7 @@ export default function CreateTaskDialog({
 
             setDeptUsers(deptData || []);
 
-            // 2. If in Social tab, also fetch Designers for the Bottom Dropdown
+            // 2. If in Social tab, also fetch Designers
             if (activeDepartment === 'social') {
                 const { data: designerData } = await supabase
                     .from("profiles")
@@ -122,7 +126,7 @@ export default function CreateTaskDialog({
             }
         };
         if (open) fetchUsers();
-    }, [open, targetDepartment, activeDepartment]);
+    }, [open, activeDepartment]);
 
     // Reset form when dialog closes
     useEffect(() => {
@@ -138,7 +142,6 @@ export default function CreateTaskDialog({
             setNewPartTitle("");
             setShippingLocation("");
             setPrice("");
-            setTargetDepartment(activeDepartment);
             setSocialTaskType('internal');
             setDeliverables([]);
             setClientName("");
@@ -152,6 +155,8 @@ export default function CreateTaskDialog({
             setServices("");
             setShootingScriptLink("");
             setRequireDesigner(false);
+            setOpsType('pricing');
+            setOpsItems([{ name: "", qty: 1, price: 0 }]);
             setError(null);
         }
     }, [open, activeDepartment]);
@@ -187,6 +192,25 @@ export default function CreateTaskDialog({
     // Remove a checklist part
     const removeChecklistPart = (index: number) => {
         setChecklistItems(checklistItems.filter((_, i) => i !== index));
+    };
+
+    // Operations Item Helpers
+    const addOpsItem = () => {
+        setOpsItems([...opsItems, { name: "", qty: 1, price: 0 }]);
+    };
+
+    const removeOpsItem = (index: number) => {
+        if (opsItems.length <= 1) {
+            setOpsItems([{ name: "", qty: 1, price: 0 }]);
+            return;
+        }
+        setOpsItems(opsItems.filter((_, i) => i !== index));
+    };
+
+    const updateOpsItem = (index: number, field: string, value: any) => {
+        const newItems = [...opsItems];
+        (newItems[index] as any)[field] = value;
+        setOpsItems(newItems);
     };
 
     // Handle form submission
@@ -246,26 +270,37 @@ export default function CreateTaskDialog({
                     }
                     metaData.social_task_type = socialTaskType;
                 }
-            } else if (activeDepartment === "accounts" || targetDepartment === "ops") {
-                if (shippingLocation) metaData.shipping_location = shippingLocation;
-                if (price) metaData.price = parseFloat(price) || 0;
-                if (clientName) metaData.client_name = clientName;
-                if (companyName) metaData.company_name = companyName;
+            } else if (activeDepartment === "accounts" || activeDepartment === "ops") {
+                if (activeDepartment === "ops") {
+                    metaData.type = opsType;
+                    metaData.client_name = clientName;
+                    metaData.company_name = companyName;
+                    metaData.items = opsItems;
+                    metaData.total_price = opsGrandTotal;
+                    if (opsType === 'order') {
+                        metaData.location = shippingLocation;
+                        if (deadline) metaData.deadline = deadline.toISOString();
+                        metaData.ops_status = 'In Progress';
+                    } else {
+                        metaData.ops_status = 'Pending';
+                    }
+                } else {
+                    if (shippingLocation) metaData.shipping_location = shippingLocation;
+                    if (price) metaData.price = parseFloat(price) || 0;
+                    if (clientName) metaData.client_name = clientName;
+                    if (companyName) metaData.company_name = companyName;
 
-                if (activeDepartment === "accounts") {
-                    metaData.type = accountMode;
-                    metaData.deal_granted = dealGranted;
-                    if (phoneNumber) metaData.phone = phoneNumber;
-                    if (callDate) metaData.call_date = callDate;
-                    if (feedback) metaData.feedback = feedback;
-                    if (budget) metaData.budget = budget;
-                    if (services) metaData.services = services;
-                    metaData.account_status = 'Planning Phase';
+                    if (activeDepartment === "accounts") {
+                        metaData.type = accountMode;
+                        metaData.deal_granted = dealGranted;
+                        if (phoneNumber) metaData.phone = phoneNumber;
+                        if (callDate) metaData.call_date = callDate;
+                        if (feedback) metaData.feedback = feedback;
+                        if (budget) metaData.budget = budget;
+                        if (services) metaData.services = services;
+                        metaData.account_status = 'Planning Phase';
+                    }
                 }
-            } else if (targetDepartment === "design" && activeDepartment === "ops") {
-                // Ops creating for Designers - pass the logistics info too
-                if (clientName) metaData.client_name = clientName;
-                if (companyName) metaData.company_name = companyName;
             }
 
             // Map department names to database values
@@ -281,7 +316,7 @@ export default function CreateTaskDialog({
 
             const finalTargetDept = (activeDepartment === 'social' && socialTaskType === 'design')
                 ? 'design'
-                : targetDepartment;
+                : activeDepartment;
 
             // Insert task
             const isShootingTask = activeDepartment === "social" && socialFilter === 'shooting';
@@ -293,6 +328,9 @@ export default function CreateTaskDialog({
             } else if (isAccountTask) {
                 const prefix = accountMode === 'inbound' ? '[Inbound]' : '[Outbound]';
                 finalTitle = `${prefix} ${clientName || 'Unspecified Client'}`;
+            } else if (activeDepartment === 'ops') {
+                const prefix = opsType === 'order' ? '[Order]' : '[Pricing]';
+                finalTitle = `${prefix} ${clientName || title || 'New Request'}`;
             }
 
             const taskObj: any = {
@@ -326,7 +364,7 @@ export default function CreateTaskDialog({
             // If Target is Designers and there are checklist parts, insert them
             const isDesignRequest = (activeDepartment === "social" && socialTaskType === "design");
 
-            if ((targetDepartment === "design" || isDesignRequest) && newTask) {
+            if ((finalTargetDept === "design" || isDesignRequest) && newTask) {
                 let partsToInsert: any[] = [];
 
                 if (isDesignRequest && deliverables.length > 0) {
@@ -391,7 +429,7 @@ export default function CreateTaskDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-discord-sidebar border-discord-dark max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogContent className="bg-discord-sidebar border-discord-dark w-[95vw] max-w-md max-h-[95vh] overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
                     <DialogTitle className="text-discord-text">
                         {activeDepartment === 'social' && socialFilter === 'shooting'
@@ -556,36 +594,6 @@ export default function CreateTaskDialog({
                         </div>
                     )}
 
-                    {/* Target Department Selection (Only for Ops View) */}
-                    {activeDepartment === "ops" && (
-                        <div>
-                            <label className="block text-xs font-bold text-discord-blurple uppercase tracking-wide mb-2">
-                                For Which Department?
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setTargetDepartment("ops")}
-                                    className={`px-3 py-2 rounded text-xs font-bold border transition-all ${targetDepartment === "ops"
-                                        ? "bg-discord-blurple border-discord-blurple text-white"
-                                        : "bg-discord-dark border-white/5 text-discord-text-muted"
-                                        }`}
-                                >
-                                    MYSELF (OPS)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setTargetDepartment("design")}
-                                    className={`px-3 py-2 rounded text-xs font-bold border transition-all ${targetDepartment === "design"
-                                        ? "bg-discord-blurple border-discord-blurple text-white"
-                                        : "bg-discord-dark border-white/5 text-discord-text-muted"
-                                        }`}
-                                >
-                                    DESIGNERS
-                                </button>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Social Media Fields */}
                     {activeDepartment === "social" && socialTaskType === "internal" && socialFilter !== 'shooting' && (
@@ -804,7 +812,7 @@ export default function CreateTaskDialog({
                     )}
 
                     {/* Designers Fields - Checklist Parts */}
-                    {targetDepartment === "design" && (
+                    {activeDepartment === "design" && (
                         <>
                             <div className="border-t border-discord-dark pt-4">
                                 <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">
@@ -864,13 +872,169 @@ export default function CreateTaskDialog({
                     )}
 
                     {/* Operations/Account Managers Fields */}
-                    {(activeDepartment === "accounts" || targetDepartment === "ops" || (activeDepartment === "ops" && targetDepartment === "design")) && (
+                    {(activeDepartment === "accounts" || activeDepartment === "ops") && (
                         <>
                             <div className="border-t border-discord-dark pt-4">
                                 <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">
-                                    Logistics & Client Details
+                                    {activeDepartment === 'ops' ? 'Operations Details' : 'Logistics & Client Details'}
                                 </p>
                             </div>
+
+                            {activeDepartment === 'ops' && (
+                                <div className="space-y-4 mb-4">
+                                    <div className="flex bg-discord-dark p-1 rounded-lg mb-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpsType('pricing')}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${opsType === 'pricing'
+                                                ? "bg-discord-blurple text-white shadow-sm"
+                                                : "text-discord-text-muted hover:text-discord-text"
+                                                }`}
+                                        >
+                                            PRICING REQUEST
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpsType('order')}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${opsType === 'order'
+                                                ? "bg-discord-blurple text-white shadow-sm"
+                                                : "text-discord-text-muted hover:text-discord-text"
+                                                }`}
+                                        >
+                                            NEW ORDER
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                Client Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={clientName}
+                                                onChange={(e) => setClientName(e.target.value)}
+                                                className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                                placeholder="Name"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                Company
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={companyName}
+                                                onChange={(e) => setCompanyName(e.target.value)}
+                                                className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                                placeholder="Company"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Item List */}
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide">
+                                            Items List
+                                        </label>
+                                        {opsItems.map((item, index) => (
+                                            <div key={index} className="flex gap-2 items-end">
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="text"
+                                                        value={item.name}
+                                                        onChange={(e) => updateOpsItem(index, 'name', e.target.value)}
+                                                        className="w-full px-3 py-2 bg-discord-dark border-none rounded text-sm text-discord-text placeholder-discord-text-muted"
+                                                        placeholder="Item name"
+                                                    />
+                                                </div>
+                                                <div className="w-16">
+                                                    <input
+                                                        type="number"
+                                                        value={item.qty}
+                                                        onChange={(e) => updateOpsItem(index, 'qty', parseInt(e.target.value) || 0)}
+                                                        className="w-full px-2 py-2 bg-discord-dark border-none rounded text-sm text-discord-text text-center"
+                                                        placeholder="Qty"
+                                                    />
+                                                </div>
+                                                <div className="w-24">
+                                                    <input
+                                                        type="number"
+                                                        value={item.price}
+                                                        onChange={(e) => updateOpsItem(index, 'price', parseFloat(e.target.value) || 0)}
+                                                        className="w-full px-2 py-2 bg-discord-dark border-none rounded text-sm text-discord-text text-right"
+                                                        placeholder="Price"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeOpsItem(index)}
+                                                    className="p-2 text-discord-text-muted hover:text-red-400"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={addOpsItem}
+                                            className="w-full border border-dashed border-discord-dark text-discord-text-muted hover:text-discord-text h-8 text-xs"
+                                        >
+                                            <Plus size={14} className="mr-1" /> Add Item
+                                        </Button>
+                                    </div>
+
+                                    {/* Total */}
+                                    <div className="flex justify-between items-center py-2 px-3 bg-discord-dark/50 rounded border border-white/5">
+                                        <span className="text-xs font-bold text-discord-text-muted uppercase">Grand Total</span>
+                                        <span className="text-lg font-bold text-green-400">${opsGrandTotal.toFixed(2)}</span>
+                                    </div>
+
+                                    {/* Conditional Order fields */}
+                                    {opsType === 'order' && (
+                                        <div className="space-y-4 pt-2">
+                                            <div>
+                                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                    Location
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={shippingLocation}
+                                                    onChange={(e) => setShippingLocation(e.target.value)}
+                                                    className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
+                                                    placeholder="Shipping Address"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                                    Deadline
+                                                </label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item"
+                                                        >
+                                                            <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
+                                                            {deadline ? format(deadline, "PPP") : <span className="text-discord-text-muted">Pick a date</span>}
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={deadline}
+                                                            onSelect={setDeadline}
+                                                            initialFocus
+                                                            className="bg-discord-sidebar text-discord-text"
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {activeDepartment === "accounts" && (
                                 <>
@@ -1068,69 +1232,6 @@ export default function CreateTaskDialog({
                                 </>
                             )}
 
-                            {/* Standard Ops Fields (Client/Company/Ship/Price) - Only for Ops or non-account logic if needed, 
-                                but user requested specific structure for Accounts. 
-                                We'll keep the Ops logic separate. 
-                            */}
-                            {activeDepartment !== "accounts" && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                                            Client Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={clientName}
-                                            onChange={(e) => setClientName(e.target.value)}
-                                            className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                                            placeholder="Name"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                                            Company Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={companyName}
-                                            onChange={(e) => setCompanyName(e.target.value)}
-                                            className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                                            placeholder="Company"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {(targetDepartment === "ops") && activeDepartment !== "accounts" && (
-                                <>
-                                    <div>
-                                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                                            Shipping Location
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={shippingLocation}
-                                            onChange={(e) => setShippingLocation(e.target.value)}
-                                            className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                                            placeholder="Enter address"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                                            Price
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={price}
-                                            onChange={(e) => setPrice(e.target.value)}
-                                            className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                </>
-                            )}
                         </>
                     )}
 

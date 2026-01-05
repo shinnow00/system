@@ -22,7 +22,7 @@ export default function TaskCheckbox({ part, onUpdate }: TaskCheckboxProps) {
     if (!user) return null; // Safety check
 
     console.log("REAL DB ROLE:", user.role);
-    console.log("Is Manager?", MANAGER_ROLES.includes(user.role));
+    console.log("Is Manager?", user.role ? MANAGER_ROLES.includes(user.role as string) : false);
 
     const handleCheck = async () => {
         if (updating) return;
@@ -30,7 +30,7 @@ export default function TaskCheckbox({ part, onUpdate }: TaskCheckboxProps) {
         console.log("Clicking part:", part.id); // Debug Log
         setUpdating(true);
 
-        const isManager = MANAGER_ROLES.includes(user.role);
+        const isManager = user.role ? MANAGER_ROLES.includes(user.role) : false;
         const updates: any = {};
 
         if (isManager) {
@@ -163,6 +163,18 @@ export default function TaskCheckbox({ part, onUpdate }: TaskCheckboxProps) {
                         </span>
                     )}
 
+                    {(part.designer_checked && part.checked_by) && (
+                        <div className="flex items-center gap-1 text-[10px] text-discord-text-muted mt-1 ml-6">
+                            <span className="opacity-50">Checked by</span>
+                            <span className="font-bold underline decoration-discord-blurple/50 text-discord-text">{part.checked_by}</span>
+                        </div>
+                    )}
+                    {(part.manager_approved && part.approved_by) && (
+                        <div className="flex items-center gap-1 text-[10px] text-discord-green mt-0.5 ml-6">
+                            <span className="opacity-50 italic">Approved by</span>
+                            <span className="font-bold uppercase tracking-tighter">{part.approved_by}</span>
+                        </div>
+                    )}
                     {meta.type && (
                         <span className="text-[10px] text-discord-text-muted bg-discord-dark px-1.5 py-0.5 rounded border border-white/5 uppercase">
                             {meta.type}

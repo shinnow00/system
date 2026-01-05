@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Profile } from "@/types/database";
-import DiscordLayout, { Department } from "@/components/DiscordLayout";
+import DiscordLayout from "@/components/DiscordLayout";
+import { Department } from "@/utils/departments";
 import DesignView from "@/components/views/DesignView";
 import SocialView from "@/components/views/SocialView";
 import AccountsView from "@/components/views/AccountsView";
@@ -122,7 +123,7 @@ export default function Home() {
             <div className={activeDepartment === "design" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <DesignView
                 key={`design-${refreshKey}`}
-                userRole={profile?.role}
+                userRole={profile?.role ?? undefined}
                 filter={designFilter}
                 currentUserId={profile?.id}
               />

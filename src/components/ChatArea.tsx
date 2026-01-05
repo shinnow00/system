@@ -354,7 +354,7 @@ export default function ChatArea({ userProfile, channelId = "general" }: ChatAre
     return (
         <div className="flex flex-col h-full">
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:pb-4">
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center">
                         <div className="w-16 h-16 bg-discord-item rounded-full flex items-center justify-center mb-4">
@@ -456,7 +456,7 @@ export default function ChatArea({ userProfile, channelId = "general" }: ChatAre
             </div>
 
             {/* Input Area */}
-            <div className="px-4 pb-6">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-discord-bg md:relative md:bg-transparent md:px-4 md:pb-6">
                 <form onSubmit={handleSendMessage} className="relative">
                     {/* Mentions Popover */}
                     {mentionMenuOpen && (

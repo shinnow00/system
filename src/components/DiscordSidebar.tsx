@@ -1,7 +1,7 @@
 "use client";
 
 import { Hash, Plus, LogOut } from "lucide-react";
-import { Department } from "./DiscordLayout";
+import { Department } from "@/utils/departments";
 import { Profile } from "@/types/database";
 
 interface DiscordSidebarProps {
@@ -42,9 +42,9 @@ export default function DiscordSidebar({
     setHrFilter
 }: DiscordSidebarProps) {
     return (
-        <div className="flex flex-col w-60 bg-discord-sidebar flex-shrink-0">
+        <div className="flex flex-col w-60 !bg-[#2B2D31] flex-shrink-0 h-full">
             {/* Server Header */}
-            <div className="h-12 px-4 flex items-center justify-between border-b border-black/20 shadow-sm flex-shrink-0">
+            <div className="h-12 px-4 flex items-center justify-between border-b border-black/20 shadow-sm flex-shrink-0 !bg-[#2B2D31]">
                 <h2 className="font-semibold text-discord-text truncate flex-1">
                     {departmentTitles[activeDepartment]}
                 </h2>
@@ -60,7 +60,7 @@ export default function DiscordSidebar({
             </div>
 
             {/* Channel List */}
-            <div className="flex-1 overflow-y-auto px-2 py-4">
+            <div className="flex-1 overflow-y-auto px-2 py-4 !bg-[#2B2D31]">
                 {/* General Chat Link */}
                 <button
                     onClick={() => {
@@ -208,7 +208,7 @@ export default function DiscordSidebar({
             </div>
 
             {/* User Panel */}
-            <div className="h-[52px] px-2 flex items-center gap-2 bg-discord-dark/50 flex-shrink-0">
+            <div className="h-[52px] px-2 flex items-center gap-2 flex-shrink-0 !bg-[#2B2D31]">
                 <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-sm font-medium">
                         {userProfile?.full_name?.[0]?.toUpperCase() || userProfile?.email?.[0]?.toUpperCase() || "U"}

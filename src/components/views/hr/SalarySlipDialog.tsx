@@ -86,7 +86,7 @@ export default function SalarySlipDialog({ isOpen, onClose, employee }: SalarySl
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="bg-discord-sidebar border-white/10 text-discord-text sm:max-w-md">
+            <DialogContent className="bg-discord-sidebar border-white/10 text-discord-text w-[95vw] sm:max-w-md max-h-[95vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Calculator className="w-5 h-5 text-discord-blurple" />
