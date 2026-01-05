@@ -14,13 +14,20 @@ export interface Profile {
 
 export interface Attendance {
     id: string;
-    user_id: string;
+    // user_id: string; // Deprecated in favor of personnel_id
+    personnel_id?: string;
     status: "Present" | "Absent" | "Late";
     bonus: number;
     deduction: number;
+    deduction_amount?: number;
+    deduction_reason?: string;
     date: string;
     created_at: string;
-    // Joined from profiles
+    // Joined from personnel
+    personnel?: {
+        full_name: string;
+    };
+    // Legacy join (optional)
     profiles?: {
         full_name?: string | null;
         email: string;
@@ -84,5 +91,27 @@ export interface Message {
         full_name?: string | null;
         email: string;
         avatar_url: string | null;
+    };
+}
+
+export interface Personnel {
+    id: string;
+    full_name: string;
+    job_title: string;
+    phone_number: string;
+    national_id: string;
+    qualification: string;
+    insurance_status: "Insured" | "Social Insurance" | "None" | "Pending";
+    notes?: string;
+    profile_id?: string | null;
+    start_date?: string | null;
+    annual_balance?: number | null;
+    salary?: number | null;
+    created_at: string;
+    updated_at: string;
+    // Joined
+    profile?: {
+        email: string;
+        full_name: string | null;
     };
 }

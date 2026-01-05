@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Profile } from "@/types/database";
-import { Users, Loader2, DollarSign, Check, X, Search, ClipboardList } from "lucide-react";
+import { Personnel } from "@/types/database";
+import { Users, Loader2, DollarSign, Check, X, Search, ClipboardList, Calculator } from "lucide-react";
 import EmployeeAttendanceDialog from "./EmployeeAttendanceDialog";
+import SalarySlipDialog from "./SalarySlipDialog";
 
 export default function HrEmployeeList() {
-    const [profiles, setProfiles] = useState<Profile[]>([]);
+    const [personnel, setPersonnel] = useState<Personnel[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [tempSalary, setTempSalary] = useState<string>("");
@@ -15,37 +16,36 @@ export default function HrEmployeeList() {
     const [searchTerm, setSearchTerm] = useState("");
 
     // Dialog State
-    const [selectedEmployee, setSelectedEmployee] = useState<Profile | null>(null);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState<Personnel | null>(null);
+    const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
+    const [isSalaryDialogOpen, setIsSalaryDialogOpen] = useState(false);
 
     useEffect(() => {
-        fetchProfiles();
+        fetchPersonnel();
     }, []);
 
-    const fetchProfiles = async () => {
+    const fetchPersonnel = async () => {
         setLoading(true);
         const supabase = createClient();
 
         try {
             const { data, error } = await supabase
-                .from("profiles")
+                .from("personnel")
                 .select("*")
-                .neq("role", "Super-Admin")
-                .order("department", { ascending: true })
                 .order("full_name", { ascending: true });
 
             if (error) throw error;
-            setProfiles(data || []);
+            setPersonnel(data || []);
         } catch (error) {
-            console.error("Error fetching profiles:", error);
+            console.error("Error fetching personnel:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    const startEditing = (profile: Profile) => {
-        setEditingId(profile.id);
-        setTempSalary(profile.salary ? profile.salary.toString() : "");
+    const startEditing = (person: Personnel) => {
+        setEditingId(person.id);
+        setTempSalary(person.salary ? person.salary.toString() : "");
     };
 
     const cancelEditing = () => {
@@ -60,14 +60,14 @@ export default function HrEmployeeList() {
 
         try {
             const { error } = await supabase
-                .from("profiles")
+                .from("personnel")
                 .update({ salary: newSalary })
                 .eq("id", id);
 
             if (error) throw error;
 
             // Update local state
-            setProfiles(profiles.map(p =>
+            setPersonnel(personnel.map(p =>
                 p.id === id ? { ...p, salary: newSalary } : p
             ));
             setEditingId(null);
@@ -79,10 +79,9 @@ export default function HrEmployeeList() {
         }
     };
 
-    const filteredProfiles = profiles.filter(p =>
+    const filteredPersonnel = personnel.filter(p =>
     (p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.department?.toLowerCase().includes(searchTerm.toLowerCase()))
+        p.job_title?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     if (loading) {
@@ -124,35 +123,33 @@ export default function HrEmployeeList() {
                         <thead>
                             <tr className="bg-discord-dark/50">
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Employee</th>
-                                <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Role & Dept</th>
+                                <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Role & Title</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Base Salary</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5 bg-discord-sidebar/50">
-                            {filteredProfiles.map((p) => (
+                            {filteredPersonnel.map((p) => (
                                 <tr key={p.id} className="hover:bg-white/[0.02] transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-discord-blurple/20 flex items-center justify-center text-discord-blurple font-bold text-sm">
-                                                {(p.full_name || p.email)[0].toUpperCase()}
+                                                {(p.full_name || "?")[0].toUpperCase()}
                                             </div>
                                             <div>
                                                 <div className="text-sm font-bold text-discord-text">
                                                     {p.full_name || "Unknown"}
                                                 </div>
                                                 <div className="text-xs text-discord-text-muted">
-                                                    {p.email}
+                                                    {p.job_title}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
-                                            <span className="text-sm text-discord-text">{p.role}</span>
-                                            <span className="text-[10px] uppercase font-bold text-discord-text-muted bg-discord-dark/50 self-start px-2 py-0.5 rounded">
-                                                {p.department}
-                                            </span>
+                                            <span className="text-sm text-discord-text">{p.job_title}</span>
+                                            {/* Removed department/role pills as they are profile specific, defaulting to job_title for now */}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -202,23 +199,35 @@ export default function HrEmployeeList() {
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button
-                                            onClick={() => {
-                                                setSelectedEmployee(p);
-                                                setIsDialogOpen(true);
-                                            }}
-                                            className="p-2 hover:bg-discord-blurple/20 text-discord-text-muted hover:text-discord-blurple rounded transition-colors group/btn"
-                                            title="View Attendance details"
-                                        >
-                                            <ClipboardList size={18} />
-                                        </button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedEmployee(p);
+                                                    setIsSalaryDialogOpen(true);
+                                                }}
+                                                className="p-2 hover:bg-discord-blurple/20 text-discord-text-muted hover:text-discord-blurple rounded transition-colors group/btn"
+                                                title="Calculate Salary"
+                                            >
+                                                <Calculator size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedEmployee(p);
+                                                    setIsAttendanceDialogOpen(true);
+                                                }}
+                                                className="p-2 hover:bg-discord-blurple/20 text-discord-text-muted hover:text-discord-blurple rounded transition-colors group/btn"
+                                                title="View Attendance details"
+                                            >
+                                                <ClipboardList size={18} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
 
-                    {filteredProfiles.length === 0 && (
+                    {filteredPersonnel.length === 0 && (
                         <div className="p-8 text-center text-discord-text-muted text-sm">
                             No employees found matching "{searchTerm}"
                         </div>
@@ -226,11 +235,20 @@ export default function HrEmployeeList() {
                 </div>
             </div>
 
-            <EmployeeAttendanceDialog
-                isOpen={isDialogOpen}
-                onClose={() => setIsDialogOpen(false)}
-                employee={selectedEmployee}
-            />
+            {selectedEmployee && (
+                <>
+                    <EmployeeAttendanceDialog
+                        isOpen={isAttendanceDialogOpen}
+                        onClose={() => setIsAttendanceDialogOpen(false)}
+                        employee={selectedEmployee}
+                    />
+                    <SalarySlipDialog
+                        isOpen={isSalaryDialogOpen}
+                        onClose={() => setIsSalaryDialogOpen(false)}
+                        employee={selectedEmployee}
+                    />
+                </>
+            )}
         </div>
     );
 }

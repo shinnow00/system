@@ -150,7 +150,8 @@ export default function DiscordSidebar({
                         </div>
                         {[
                             { id: 'attendance', name: 'Attendance' },
-                            { id: 'employees', name: 'Employees' }
+                            { id: 'employees', name: 'Employees' },
+                            { id: 'database', name: 'Database' }
                         ].map((channel) => {
                             const isActive = hrFilter === channel.id;
                             return (

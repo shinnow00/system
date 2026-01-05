@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Profile, Attendance } from "@/types/database";
+import { Personnel, Attendance } from "@/types/database";
 import {
     X,
     Calendar,
@@ -19,7 +19,7 @@ import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } f
 interface EmployeeAttendanceDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    employee: Profile | null;
+    employee: Personnel | null;
 }
 
 export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: EmployeeAttendanceDialogProps) {
@@ -45,7 +45,7 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
             const { data, error } = await supabase
                 .from("attendance")
                 .select("*")
-                .eq("user_id", employee.id)
+                .eq("personnel_id", employee.id)
                 .gte("date", start)
                 .lte("date", end)
                 .order("date", { ascending: false });
@@ -63,7 +63,8 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
         present: records.length,
         late: records.filter(r => r.status === "Late").length,
         // Since we changed deduction to Days, we sum them up as days
-        deductions: records.reduce((acc, curr) => acc + (curr.deduction || 0), 0),
+        deductions_days: records.reduce((acc, curr) => acc + (curr.deduction || 0), 0),
+        deductions_amount: records.reduce((acc, curr) => acc + (curr.deduction_amount || 0), 0),
         bonus: records.reduce((acc, curr) => acc + (curr.bonus || 0), 0),
     };
 
@@ -77,7 +78,7 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
                 <div className="p-6 border-b border-white/5 flex items-center justify-between bg-discord-sidebar">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-discord-blurple/20 flex items-center justify-center text-discord-blurple font-bold text-lg">
-                            {(employee.full_name || employee.email)[0].toUpperCase()}
+                            {(employee.full_name || "?")[0].toUpperCase()}
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-discord-text">
@@ -141,7 +142,12 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
                                 <TrendingDown size={16} />
                                 <span className="text-xs font-bold uppercase tracking-wider">Total Deductions</span>
                             </div>
-                            <div className="text-2xl font-bold text-discord-text">{stats.deductions} <span className="text-sm font-normal text-discord-text-muted">Days</span></div>
+                            <div className="flex flex-col">
+                                <span className="text-xl font-bold text-discord-text">{stats.deductions_days} <span className="text-xs font-normal text-discord-text-muted">Days</span></span>
+                                {stats.deductions_amount > 0 && (
+                                    <span className="text-sm font-bold text-red-400">${stats.deductions_amount}</span>
+                                )}
+                            </div>
                         </div>
                         <div className="bg-discord-dark p-4 rounded-lg border border-white/5">
                             <div className="flex items-center gap-2 mb-2 text-green-400">
@@ -170,7 +176,8 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
                                 <tr className="bg-discord-dark/50 border-b border-white/5">
                                     <th className="px-4 py-3 text-xs font-bold text-discord-text-muted uppercase">Date</th>
                                     <th className="px-4 py-3 text-xs font-bold text-discord-text-muted uppercase text-center">Status</th>
-                                    <th className="px-4 py-3 text-xs font-bold text-discord-text-muted uppercase text-center">Deduction</th>
+                                    <th className="px-4 py-3 text-xs font-bold text-discord-text-muted uppercase text-center">Deduction (Days)</th>
+                                    <th className="px-4 py-3 text-xs font-bold text-discord-text-muted uppercase text-center">Deduction ($)</th>
                                     <th className="px-4 py-3 text-xs font-bold text-discord-text-muted uppercase text-center">Bonus</th>
                                 </tr>
                             </thead>
@@ -184,8 +191,8 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${record.status === "Present" ? "bg-green-500/20 text-green-400" :
-                                                    record.status === "Late" ? "bg-yellow-500/20 text-yellow-500" :
-                                                        "bg-red-500/20 text-red-500"
+                                                record.status === "Late" ? "bg-yellow-500/20 text-yellow-500" :
+                                                    "bg-red-500/20 text-red-500"
                                                 }`}>
                                                 {record.status}
                                             </span>
@@ -198,6 +205,22 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
                                             ) : (
                                                 <span className="text-discord-text-muted">-</span>
                                             )}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <div className="flex flex-col items-center">
+                                                {record.deduction_amount && record.deduction_amount > 0 ? (
+                                                    <span className="text-red-400 font-bold text-sm">
+                                                        -${record.deduction_amount}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-discord-text-muted">-</span>
+                                                )}
+                                                {record.deduction_reason && (
+                                                    <span className="text-[10px] text-discord-text-muted max-w-[80px] truncate" title={record.deduction_reason}>
+                                                        {record.deduction_reason}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             {record.bonus > 0 ? (

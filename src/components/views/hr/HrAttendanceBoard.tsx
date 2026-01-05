@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Profile, Attendance } from "@/types/database";
+import { Personnel, Attendance } from "@/types/database";
 import {
     Users,
     ClipboardCheck,
@@ -19,7 +19,7 @@ import EditAttendanceDialog from "./EditAttendanceDialog";
 import { Pencil } from "lucide-react";
 
 export default function HrAttendanceBoard() {
-    const [profiles, setProfiles] = useState<Profile[]>([]);
+    const [personnel, setPersonnel] = useState<Personnel[]>([]);
     const [history, setHistory] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -31,6 +31,9 @@ export default function HrAttendanceBoard() {
     const [status, setStatus] = useState<"Present" | "Absent" | "Late">("Present");
     const [bonus, setBonus] = useState(0);
     const [deduction, setDeduction] = useState(0);
+    const [deductionType, setDeductionType] = useState<"Days" | "Amount">("Days");
+    const [deductionAmount, setDeductionAmount] = useState(0);
+    const [deductionReason, setDeductionReason] = useState("");
 
     // Filter state
     const [filterMode, setFilterMode] = useState<"Today" | "Yesterday" | "Custom">("Today");
@@ -49,15 +52,14 @@ export default function HrAttendanceBoard() {
         const supabase = createClient();
 
         try {
-            // Fetch all profiles
-            const { data: profs, error: profsError } = await supabase
-                .from("profiles")
+            // Fetch all personnel
+            const { data: personnelData, error: personnelError } = await supabase
+                .from("personnel")
                 .select("*")
-                .neq("role", "Super-Admin")
-                .order("email", { ascending: true });
+                .order("full_name", { ascending: true });
 
-            if (profsError) throw profsError;
-            setProfiles(profs || []);
+            if (personnelError) throw personnelError;
+            setPersonnel(personnelData || []);
 
             // Calculate filter date
             let targetDate = format(new Date(), "yyyy-MM-dd");
@@ -72,8 +74,7 @@ export default function HrAttendanceBoard() {
                 .from("attendance")
                 .select(`
                     *,
-                    profiles:user_id (
-                        email,
+                    personnel:personnel_id (
                         full_name
                     )
                 `)
@@ -108,10 +109,12 @@ export default function HrAttendanceBoard() {
             const { error: insertError } = await supabase
                 .from("attendance")
                 .insert({
-                    user_id: selectedEmployee,
+                    personnel_id: selectedEmployee,
                     status,
                     bonus,
-                    deduction,
+                    deduction: deductionType === "Days" ? deduction : 0,
+                    deduction_amount: deductionType === "Amount" ? deductionAmount : 0,
+                    deduction_reason: deductionType === "Amount" ? deductionReason : null,
                     date: today,
                 });
 
@@ -122,11 +125,72 @@ export default function HrAttendanceBoard() {
             setStatus("Present");
             setBonus(0);
             setDeduction(0);
+            setDeductionAmount(0);
+            setDeductionReason("");
             fetchData(); // Refresh history
 
             setTimeout(() => setSuccess(false), 3000);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleMarkRestPresent = async () => {
+        if (!confirm("Are you sure you want to mark all remaining employees as 'Present' for today?")) return;
+
+        setSubmitting(true);
+        setError(null);
+        setSuccess(false);
+
+        const supabase = createClient();
+        const today = format(new Date(), "yyyy-MM-dd");
+
+        try {
+            // 1. Fetch all personnel
+            const { data: allPersonnel, error: personnelError } = await supabase
+                .from("personnel")
+                .select("id");
+
+            if (personnelError) throw personnelError;
+
+            // 2. Fetch today's attendance (already loaded in history, but safer to re-fetch just IDs)
+            const { data: todaysAttendance, error: attendanceError } = await supabase
+                .from("attendance")
+                .select("personnel_id")
+                .eq("date", today);
+
+            if (attendanceError) throw attendanceError;
+
+            // 3. Find missing personnel
+            const existingIds = new Set(todaysAttendance?.map(a => a.personnel_id));
+            const missingPersonnel = allPersonnel?.filter(p => !existingIds.has(p.id)) || [];
+
+            if (missingPersonnel.length === 0) {
+                setError("All employees are already marked for today.");
+                setSubmitting(false);
+                return;
+            }
+
+            // 4. Bulk Insert
+            const newRecords = missingPersonnel.map(p => ({
+                personnel_id: p.id,
+                status: "Present",
+                bonus: 0,
+                deduction: 0,
+                date: today,
+            }));
+
+            const { error: insertError } = await supabase
+                .from("attendance")
+                .insert(newRecords);
+
+            if (insertError) throw insertError;
+
+            setSuccess(true);
+            fetchData(); // Refresh history
+            setTimeout(() => setSuccess(false), 3000);
         } catch (err: any) {
-            console.error("Error marking attendance:", err);
+            console.error("Error bulk marking attendance:", err);
             setError(err.message);
         } finally {
             setSubmitting(false);
@@ -179,9 +243,9 @@ export default function HrAttendanceBoard() {
                             className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none transition-all"
                         >
                             <option value="">Select Employee...</option>
-                            {profiles.map(p => (
+                            {personnel.map(p => (
                                 <option key={p.id} value={p.id}>
-                                    {p.full_name || p.email}
+                                    {p.full_name}
                                 </option>
                             ))}
                         </select>
@@ -219,18 +283,59 @@ export default function HrAttendanceBoard() {
 
                     {/* Deduction */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wider flex items-center gap-1">
-                            <CalendarClock size={14} className="text-red-400" />
-                            Deduction (Days)
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={deduction}
-                            onChange={(e) => setDeduction(Number(e.target.value))}
-                            min="0"
-                            className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none transition-all"
-                        />
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wider flex items-center gap-1">
+                                <CalendarClock size={14} className="text-red-400" />
+                                Deduction
+                            </label>
+                            <div className="flex bg-discord-dark rounded p-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeductionType("Days")}
+                                    className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded ${deductionType === "Days" ? "bg-discord-blurple text-white" : "text-discord-text-muted hover:text-discord-text"}`}
+                                >
+                                    Days
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setDeductionType("Amount")}
+                                    className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded ${deductionType === "Amount" ? "bg-discord-blurple text-white" : "text-discord-text-muted hover:text-discord-text"}`}
+                                >
+                                    $
+                                </button>
+                            </div>
+                        </div>
+
+                        {deductionType === "Days" ? (
+                            <input
+                                type="number"
+                                step="0.25"
+                                value={deduction}
+                                onChange={(e) => setDeduction(Number(e.target.value))}
+                                min="0"
+                                placeholder="Days"
+                                className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none transition-all"
+                            />
+                        ) : (
+                            <div className="flex gap-2">
+                                <input
+                                    type="number"
+                                    step="1"
+                                    value={deductionAmount}
+                                    onChange={(e) => setDeductionAmount(Number(e.target.value))}
+                                    min="0"
+                                    placeholder="$"
+                                    className="w-1/3 bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none transition-all"
+                                />
+                                <input
+                                    type="text"
+                                    value={deductionReason}
+                                    onChange={(e) => setDeductionReason(e.target.value)}
+                                    placeholder="Reason"
+                                    className="w-2/3 bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none transition-all"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* Submit */}
@@ -281,6 +386,14 @@ export default function HrAttendanceBoard() {
                             />
                         </div>
                     )}
+
+                    <button
+                        onClick={handleMarkRestPresent}
+                        disabled={submitting}
+                        className="px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider border border-discord-blurple text-discord-blurple hover:bg-discord-blurple hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+                    >
+                        Mark Rest Present
+                    </button>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -291,14 +404,15 @@ export default function HrAttendanceBoard() {
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Employee</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-center">Status</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-center">Bonus</th>
-                                <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-center">Deduction</th>
+                                <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-center">Deduction (Days)</th>
+                                <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-center">Deduction ($)</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {history.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-discord-text-muted">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-discord-text-muted">
                                         No attendance records found.
                                     </td>
                                 </tr>
@@ -316,14 +430,11 @@ export default function HrAttendanceBoard() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-discord-blurple/20 flex items-center justify-center text-discord-blurple font-bold text-xs">
-                                                    {(record.profiles?.full_name || record.profiles?.email || "?")[0].toUpperCase()}
+                                                    {(record.personnel?.full_name || "?")[0].toUpperCase()}
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-bold text-discord-text">
-                                                        {record.profiles?.full_name || "Unknown User"}
-                                                    </div>
-                                                    <div className="text-xs text-discord-text-muted">
-                                                        {record.profiles?.email}
+                                                        {record.personnel?.full_name || "Unknown User"}
                                                     </div>
                                                 </div>
                                             </div>
@@ -345,6 +456,18 @@ export default function HrAttendanceBoard() {
                                             <span className={record.deduction > 0 ? "text-red-400 font-bold" : "text-discord-text-muted"}>
                                                 {record.deduction > 0 ? `${record.deduction} Days` : "-"}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <span className={record.deduction_amount && record.deduction_amount > 0 ? "text-red-400 font-bold" : "text-discord-text-muted"}>
+                                                    {record.deduction_amount && record.deduction_amount > 0 ? `$${record.deduction_amount}` : "-"}
+                                                </span>
+                                                {record.deduction_reason && (
+                                                    <span className="text-[10px] text-discord-text-muted max-w-[100px] truncate" title={record.deduction_reason}>
+                                                        {record.deduction_reason}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button

@@ -3,6 +3,7 @@
 import { ClipboardCheck } from "lucide-react";
 import HrAttendanceBoard from "./hr/HrAttendanceBoard";
 import HrEmployeeList from "./hr/HrEmployeeList";
+import HrDatabaseBoard from "./hr/HrDatabaseBoard";
 
 interface HrViewProps {
     filter?: string;
@@ -23,8 +24,10 @@ export default function HrView({ filter = 'attendance' }: HrViewProps) {
             <div className="flex-1 overflow-y-auto p-6">
                 {filter === 'attendance' ? (
                     <HrAttendanceBoard />
-                ) : (
+                ) : filter === 'employees' ? (
                     <HrEmployeeList />
+                ) : (
+                    <HrDatabaseBoard />
                 )}
             </div>
         </div>

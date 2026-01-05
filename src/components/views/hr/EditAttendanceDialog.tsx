@@ -30,6 +30,9 @@ export default function EditAttendanceDialog({
     const [status, setStatus] = useState<"Present" | "Absent" | "Late">("Present");
     const [bonus, setBonus] = useState(0);
     const [deduction, setDeduction] = useState(0);
+    const [deductionType, setDeductionType] = useState<"Days" | "Amount">("Days");
+    const [deductionAmount, setDeductionAmount] = useState(0);
+    const [deductionReason, setDeductionReason] = useState("");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +40,17 @@ export default function EditAttendanceDialog({
         if (record) {
             setStatus(record.status);
             setBonus(record.bonus || 0);
-            setDeduction(record.deduction || 0);
+            if (record.deduction_amount && record.deduction_amount > 0) {
+                setDeductionType("Amount");
+                setDeductionAmount(record.deduction_amount);
+                setDeductionReason(record.deduction_reason || "");
+                setDeduction(0);
+            } else {
+                setDeductionType("Days");
+                setDeduction(record.deduction || 0);
+                setDeductionAmount(0);
+                setDeductionReason("");
+            }
         }
     }, [record]);
 
@@ -54,7 +67,9 @@ export default function EditAttendanceDialog({
                 .update({
                     status,
                     bonus,
-                    deduction,
+                    deduction: deductionType === "Days" ? deduction : 0,
+                    deduction_amount: deductionType === "Amount" ? deductionAmount : 0,
+                    deduction_reason: deductionType === "Amount" ? deductionReason : null,
                 })
                 .eq("id", record.id);
 
@@ -127,18 +142,59 @@ export default function EditAttendanceDialog({
 
                         {/* Deduction */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wider flex items-center gap-1">
-                                <CalendarClock size={14} className="text-red-400" />
-                                Deduction (Days)
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={deduction}
-                                onChange={(e) => setDeduction(Number(e.target.value))}
-                                min="0"
-                                className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
-                            />
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wider flex items-center gap-1">
+                                    <CalendarClock size={14} className="text-red-400" />
+                                    Deduction
+                                </label>
+                                <div className="flex bg-discord-dark rounded p-0.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDeductionType("Days")}
+                                        className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded ${deductionType === "Days" ? "bg-discord-blurple text-white" : "text-discord-text-muted hover:text-discord-text"}`}
+                                    >
+                                        Days
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDeductionType("Amount")}
+                                        className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded ${deductionType === "Amount" ? "bg-discord-blurple text-white" : "text-discord-text-muted hover:text-discord-text"}`}
+                                    >
+                                        $
+                                    </button>
+                                </div>
+                            </div>
+
+                            {deductionType === "Days" ? (
+                                <input
+                                    type="number"
+                                    step="0.25"
+                                    value={deduction}
+                                    onChange={(e) => setDeduction(Number(e.target.value))}
+                                    min="0"
+                                    placeholder="Days"
+                                    className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
+                                />
+                            ) : (
+                                <div className="grid grid-cols-1 gap-2">
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        value={deductionAmount}
+                                        onChange={(e) => setDeductionAmount(Number(e.target.value))}
+                                        min="0"
+                                        placeholder="$"
+                                        className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={deductionReason}
+                                        onChange={(e) => setDeductionReason(e.target.value)}
+                                        placeholder="Reason"
+                                        className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
