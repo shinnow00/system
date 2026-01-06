@@ -123,7 +123,7 @@ export default function Home() {
             <div className={activeDepartment === "design" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <DesignView
                 key={`design-${refreshKey}`}
-                userRole={profile?.role ?? undefined}
+                userRole={profile?.role as any}
                 filter={designFilter}
                 currentUserId={profile?.id}
               />
