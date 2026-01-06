@@ -1,23 +1,10 @@
 // Database types for the application
 
-
-export type Role =
-    | '2D Designer'
-    | '3D Designer'
-    | 'Motion Designer'
-    | 'Visual Manager'
-    | 'Social Media Specialist'
-    | 'Account Manager'
-    | 'Operations Manager'
-    | 'HR Specialist'
-    | 'Admin'
-    | 'Super-Admin';
-
 export interface Profile {
     id: string;
     email: string;
     full_name?: string | null;
-    role: Role | null;
+    role: "Designer" | "Visual Manager" | "Social Media Manager" | "Account Manager" | "Admin" | null;
     department: "Designers" | "Social" | "Account Managers" | "Hr" | "Operations" | null;
     avatar_url: string | null;
     salary?: number | null;

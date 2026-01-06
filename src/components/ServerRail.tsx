@@ -33,15 +33,9 @@ export default function ServerRail({
             {/* Department Icons */}
             {departments
                 .filter((dept) => {
-                    // 1. Admins see everything
-                    if ((userProfile?.role as string) === "Admin" || (userProfile?.role as string) === "Super-Admin" || isShadow) return true;
-
-                    // 2. Strict HR Check
-                    if (userProfile?.department === 'Hr' || userProfile?.department === 'HR') {
-                        return dept.id === 'hr'; // Only show the HR icon
-                    }
-
-                    // 3. Strict Check for others
+                    // Admin and Shadow users see all departments
+                    if (userProfile?.role === "Admin" || isShadow) return true;
+                    // Others only see their own department
                     const deptIdMap: Record<string, Department> = {
                         'Designers': 'design',
                         'Social Media': 'social',
@@ -49,29 +43,8 @@ export default function ServerRail({
                         'Hr': 'hr',
                         'Operations': 'ops'
                     };
-                    const dbName = deptIdMap[dept.name] || dept.name; // Fallback to name if not in map, though map keyed by db string is cleaner
-                    // Re-implementing based on user request logic structure:
-                    // "const dbName = DB_TO_UI_MAP[dept.name] || dept.name; return dbName === user.department;"
-                    // Note: dept.name in the object is "Designers", etc.
-                    // But in the departments array, dept.name is "Designers". 
-                    // userProfile.department is "Designers".
-
-                    // Let's stick closer to the user's snippet logic but adapted for this file's variables.
-
-                    // The Dept interface has 'name' as string.
-                    // departments array has name: "Designers", "Social Media", "Account Managers", "HR Department", "Operations"
-
-                    // Map from Department Name (in departments array) to User Profile Department string
-                    const DB_TO_UI_MAP: Record<string, string> = {
-                        'Designers': 'Designers',
-                        'Social Media': 'Social', // dept.name "Social Media" -> user.dept "Social"
-                        'Account Managers': 'Account Managers',
-                        'HR Department': 'Hr',
-                        'Operations': 'Operations'
-                    };
-
-                    const mappedUserDept = DB_TO_UI_MAP[dept.name];
-                    return mappedUserDept === userProfile?.department;
+                    const userDeptId = userProfile?.department ? (deptIdMap[userProfile.department] || userProfile.department) : null;
+                    return dept.id === userDeptId;
                 })
                 .map((dept) => {
                     const Icon = dept.icon;
