@@ -34,7 +34,7 @@ export default function ServerRail({
             {departments
                 .filter((dept) => {
                     // 1. Admins see everything
-                    if (userProfile?.role === "Admin" || userProfile?.role === "Super-Admin" || isShadow) return true;
+                    if ((userProfile?.role as string) === "Admin" || (userProfile?.role as string) === "Super-Admin" || isShadow) return true;
 
                     // 2. Strict HR Check
                     if (userProfile?.department === 'Hr' || userProfile?.department === 'HR') {
