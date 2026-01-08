@@ -59,3 +59,13 @@ export const departmentTitles: Record<Department, string> = {
     finance: "Finance & Inventory",
     home: "Direct Messages",
 };
+
+export const ROLES_BY_DEPARTMENT: Record<string, string[]> = {
+    "Designers": ["2D Designer", "3D Designer", "Motion Designer", "Visual Manager"],
+    "Social": ["Social Media Specialist"],
+    "Account Managers": ["Account Manager"],
+    "Hr": ["HR Specialist"],
+    "Operations": ["Operations Manager", "Operator"],
+    "Finance & Inventory": ["Accountant"],
+    "SuperAdmin": ["Admin", "Super-Admin"]
+};

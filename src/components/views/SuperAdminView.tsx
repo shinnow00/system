@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Profile } from "@/types/database";
+import { ROLES_BY_DEPARTMENT } from "@/utils/departments";
 import {
     Dialog,
     DialogContent,
@@ -347,20 +348,42 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                                             {isEditing ? (
                                                 <select
                                                     value={editForm.role}
-                                                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                                                    onChange={(e) => {
+                                                        const newRole = e.target.value;
+                                                        const updates: any = { role: newRole };
+
+                                                        // Comprehensive Auto-select mapping
+                                                        const ROLE_TO_DEPT: Record<string, string> = {
+                                                            "2D Designer": "Designers",
+                                                            "3D Designer": "Designers",
+                                                            "Motion Designer": "Designers",
+                                                            "Visual Manager": "Designers",
+                                                            "Social Media Specialist": "Social",
+                                                            "Account Manager": "Account Managers",
+                                                            "Operations Manager": "Operations",
+                                                            "Operator": "Operations",
+                                                            "Accountant": "Finance & Inventory",
+                                                            "HR Specialist": "Hr",
+                                                            "Admin": "SuperAdmin",
+                                                            "Super-Admin": "SuperAdmin"
+                                                        };
+
+                                                        if (ROLE_TO_DEPT[newRole]) {
+                                                            updates.department = ROLE_TO_DEPT[newRole];
+                                                        }
+
+                                                        setEditForm({ ...editForm, ...updates });
+                                                    }}
                                                     className="w-full bg-discord-dark border border-discord-blurple rounded px-2 py-1 text-sm focus:outline-none"
                                                 >
                                                     <option value="">Select Role</option>
-                                                    <option value="Designer">Designer</option>
-                                                    <option value="Visual Manager">Visual Manager</option>
-                                                    <option value="Social Media Manager">Social Media Manager</option>
-                                                    <option value="Account Manager">Account Manager</option>
-                                                    <option value="Accountant">Accountant</option>
-                                                    <option value="Admin">Admin</option>
+                                                    {Object.values(ROLES_BY_DEPARTMENT).flat().map(role => (
+                                                        <option key={role} value={role}>{role}</option>
+                                                    ))}
                                                 </select>
                                             ) : (
                                                 <span
-                                                    className={`px-2 py-0.5 rounded text-xs font-medium ${user.role === "Admin"
+                                                    className={`px-2 py-0.5 rounded text-xs font-medium ${(user.role === "Admin" || user.role === "Super-Admin")
                                                         ? "bg-red-500/20 text-red-400"
                                                         : user.role === "Visual Manager"
                                                             ? "bg-discord-blurple/20 text-discord-blurple"

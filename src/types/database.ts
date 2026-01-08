@@ -4,8 +4,8 @@ export interface Profile {
     id: string;
     email: string;
     full_name?: string | null;
-    role: "Designer" | "Visual Manager" | "Social Media Manager" | "Account Manager" | "Admin" | null;
-    department: "Designers" | "Social" | "Account Managers" | "Hr" | "Operations" | null;
+    role: "2D Designer" | "3D Designer" | "Motion Designer" | "Visual Manager" | "Social Media Specialist" | "Account Manager" | "Operations Manager" | "Operator" | "Accountant" | "HR Specialist" | "Admin" | "Super-Admin" | null;
+    department: "Designers" | "Social" | "Account Managers" | "Hr" | "Operations" | "Finance & Inventory" | "SuperAdmin" | null;
     avatar_url: string | null;
     salary?: number | null;
     created_at: string;
