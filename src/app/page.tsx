@@ -11,6 +11,7 @@ import SocialView from "@/components/views/SocialView";
 import AccountsView from "@/components/views/AccountsView";
 import HrView from "@/components/views/HrView";
 import OpsView from "@/components/views/OpsView";
+import FinanceView from "@/components/views/FinanceView";
 import SuperAdminView from "@/components/views/SuperAdminView";
 import ChatArea from "@/components/ChatArea";
 import CreateTaskDialog from "@/components/CreateTaskDialog";
@@ -42,6 +43,7 @@ export default function Home() {
   const [designFilter, setDesignFilter] = useState("my-tasks");
   const [socialFilter, setSocialFilter] = useState('calendar');
   const [hrFilter, setHrFilter] = useState('attendance');
+  const [financeFilter, setFinanceFilter] = useState<"payments" | "sales" | "inventory">('payments');
   const router = useRouter();
 
   useEffect(() => {
@@ -145,6 +147,10 @@ export default function Home() {
               <OpsView key={`ops-${refreshKey}`} />
             </div>
 
+            <div className={activeDepartment === "finance" ? "flex flex-col flex-1 h-full" : "hidden"}>
+              <FinanceView key={`finance-${refreshKey}`} filter={financeFilter} />
+            </div>
+
             <div className={activeDepartment === "superadmin" ? "flex flex-col flex-1 h-full" : "hidden"}>
               <SuperAdminView userEmail={profile?.email} />
             </div>
@@ -171,14 +177,18 @@ export default function Home() {
         onCreateTask={() => setCreateTaskOpen(true)}
         isGeneralChat={isGeneralChat}
         onToggleGeneralChat={setIsGeneralChat}
-        activeChannel={activeDepartment === "design" ? designFilter : activeDepartment === "social" ? socialFilter : activeDepartment === "hr" ? hrFilter : currentChannel}
+        activeChannel={activeDepartment === "design" ? designFilter : activeDepartment === "social" ? socialFilter : activeDepartment === "hr" ? hrFilter : activeDepartment === "finance" ? financeFilter : currentChannel}
         socialFilter={socialFilter}
         setSocialFilter={setSocialFilter}
         hrFilter={hrFilter}
         setHrFilter={setHrFilter}
+        financeFilter={financeFilter}
+        setFinanceFilter={setFinanceFilter}
         onChannelChange={(id) => {
           if (activeDepartment === "design") {
             setDesignFilter(id);
+          } else if (activeDepartment === "finance") {
+            setFinanceFilter(id as any);
           } else {
             setCurrentChannel(id);
           }

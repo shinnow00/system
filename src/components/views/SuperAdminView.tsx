@@ -355,6 +355,7 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                                                     <option value="Visual Manager">Visual Manager</option>
                                                     <option value="Social Media Manager">Social Media Manager</option>
                                                     <option value="Account Manager">Account Manager</option>
+                                                    <option value="Accountant">Accountant</option>
                                                     <option value="Admin">Admin</option>
                                                 </select>
                                             ) : (
@@ -385,6 +386,7 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                                                     <option value="Account Managers">Account Managers</option>
                                                     <option value="Hr">HR Department</option>
                                                     <option value="Operations">Operations</option>
+                                                    <option value="Finance & Inventory">Finance & Inventory</option>
                                                     <option value="SuperAdmin">Super Admin</option>
                                                 </select>
                                             ) : (

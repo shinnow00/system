@@ -20,7 +20,9 @@ interface DiscordSidebarProps {
     socialFilter: string;
     setSocialFilter: (filter: string) => void;
     hrFilter?: string;
-    setHrFilter?: (filter: string) => void;
+    setHrFilter?: (filter: any) => void;
+    financeFilter?: string;
+    setFinanceFilter?: (filter: any) => void;
 }
 
 export default function DiscordSidebar({
@@ -39,7 +41,9 @@ export default function DiscordSidebar({
     socialFilter,
     setSocialFilter,
     hrFilter,
-    setHrFilter
+    setHrFilter,
+    financeFilter,
+    setFinanceFilter
 }: DiscordSidebarProps) {
     return (
         <div className="flex flex-col w-60 !bg-[#2B2D31] flex-shrink-0 h-full">
@@ -160,6 +164,36 @@ export default function DiscordSidebar({
                                     onClick={() => {
                                         onToggleGeneralChat(false);
                                         if (setHrFilter) setHrFilter(channel.id);
+                                        onChannelChange(channel.id);
+                                    }}
+                                    className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-colors ${isActive
+                                        ? "bg-discord-item text-discord-text"
+                                        : "text-discord-text-muted hover:text-discord-text hover:bg-discord-item/50"
+                                        }`}
+                                >
+                                    <Hash size={20} className="flex-shrink-0 text-discord-text-muted" />
+                                    <span className="truncate text-sm"># {channel.name.toLowerCase()}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                ) : activeDepartment === 'finance' ? (
+                    <div className="mb-4">
+                        <div className="flex items-center gap-1 text-xs font-semibold text-discord-text-muted uppercase tracking-wide mb-1 px-1">
+                            Finance & Inventory
+                        </div>
+                        {[
+                            { id: 'payments', name: 'Payments' },
+                            { id: 'sales', name: 'Sales' },
+                            { id: 'inventory', name: 'Inventory' }
+                        ].map((channel) => {
+                            const isActive = financeFilter === channel.id;
+                            return (
+                                <button
+                                    key={channel.id}
+                                    onClick={() => {
+                                        onToggleGeneralChat(false);
+                                        if (setFinanceFilter) setFinanceFilter(channel.id);
                                         onChannelChange(channel.id);
                                     }}
                                     className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-colors ${isActive

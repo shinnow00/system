@@ -1,7 +1,7 @@
-import { Home, Users, Truck, Cog, Shield, Instagram, Briefcase } from "lucide-react";
+import { Home, Users, Truck, Cog, Shield, Instagram, Briefcase, Calculator } from "lucide-react";
 
 // Department type
-export type Department = "design" | "social" | "accounts" | "hr" | "ops" | "superadmin" | "home";
+export type Department = "design" | "social" | "accounts" | "hr" | "ops" | "superadmin" | "home" | "finance";
 
 // Department icons for the server rail
 export const departments: { id: Department; icon: typeof Home; name: string; color: string }[] = [
@@ -10,6 +10,7 @@ export const departments: { id: Department; icon: typeof Home; name: string; col
     { id: "accounts", icon: Briefcase, name: "Account Managers", color: "bg-orange-500" },
     { id: "hr", icon: Cog, name: "HR Department", color: "bg-blue-500" },
     { id: "ops", icon: Truck, name: "Operations", color: "bg-yellow-600" },
+    { id: "finance", icon: Calculator, name: "Finance & Inventory", color: "bg-emerald-600" },
 ];
 
 // Channels config per department
@@ -40,6 +41,11 @@ export const channelsByDepartment: Record<Department, { id: string; name: string
         { id: "user-management", name: "user-management", type: "text" },
         { id: "system-logs", name: "system-logs", type: "text" },
     ],
+    finance: [
+        { id: "payments", name: "payments", type: "text" },
+        { id: "sales", name: "sales", type: "text" },
+        { id: "inventory", name: "inventory", type: "text" },
+    ],
     home: [],
 };
 
@@ -50,5 +56,6 @@ export const departmentTitles: Record<Department, string> = {
     hr: "HR Department",
     ops: "Operations",
     superadmin: "Super Admin",
+    finance: "Finance & Inventory",
     home: "Direct Messages",
 };

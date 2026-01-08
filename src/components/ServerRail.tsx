@@ -41,7 +41,8 @@ export default function ServerRail({
                         'Social Media': 'social',
                         'Account Managers': 'accounts',
                         'Hr': 'hr',
-                        'Operations': 'ops'
+                        'Operations': 'ops',
+                        'Finance & Inventory': 'finance'
                     };
                     const userDeptId = userProfile?.department ? (deptIdMap[userProfile.department] || userProfile.department) : null;
                     return dept.id === userDeptId;

@@ -26,8 +26,10 @@ interface MobileNavProps {
     handleLogout: () => void;
     socialFilter: string;
     setSocialFilter: (filter: string) => void;
-    hrFilter: string;
-    setHrFilter: (filter: string) => void;
+    hrFilter?: string;
+    setHrFilter?: (filter: any) => void;
+    financeFilter?: string;
+    setFinanceFilter?: (filter: any) => void;
 }
 
 export default function MobileNav({
@@ -50,7 +52,9 @@ export default function MobileNav({
     socialFilter,
     setSocialFilter,
     hrFilter,
-    setHrFilter
+    setHrFilter,
+    financeFilter,
+    setFinanceFilter
 }: MobileNavProps) {
     return (
         <div className="md:hidden h-14 bg-discord-dark border-b border-black/20 flex items-center px-4 justify-between flex-shrink-0">

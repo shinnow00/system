@@ -310,6 +310,7 @@ export default function CreateTaskDialog({
                 accounts: "Account Managers",
                 hr: "Hr",
                 ops: "Operations",
+                finance: "Finance & Inventory",
                 superadmin: "Admin",
                 home: "Home",
             };
