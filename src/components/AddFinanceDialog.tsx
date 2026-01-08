@@ -392,7 +392,7 @@ export default function AddFinanceDialog({
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-discord-text-muted uppercase">Amount (Base)</label>
+                                    <label className="text-xs font-bold text-discord-text-muted uppercase">Amount (Base) (EGP)</label>
                                     <input
                                         required
                                         type="number"
@@ -402,7 +402,7 @@ export default function AddFinanceDialog({
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-discord-text-muted uppercase text-orange-400">VAT (Amount)</label>
+                                    <label className="text-xs font-bold text-discord-text-muted uppercase text-orange-400">VAT (Amount) (EGP)</label>
                                     <input
                                         required
                                         type="number"
@@ -411,9 +411,9 @@ export default function AddFinanceDialog({
                                         className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-orange-500 outline-none"
                                     />
                                 </div>
-                                <div className="md:col-span-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex justify-between items-center">
+                                <div className="md-col-span-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex justify-between items-center">
                                     <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Total Amount</span>
-                                    <span className="text-2xl font-bold text-emerald-400">${amountTotal.toLocaleString()}</span>
+                                    <span className="text-2xl font-bold text-emerald-400">{amountTotal.toLocaleString()} EGP</span>
                                 </div>
                             </>
                         )}

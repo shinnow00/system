@@ -964,7 +964,7 @@ export default function CreateTaskDialog({
                                                         value={item.price}
                                                         onChange={(e) => updateOpsItem(index, 'price', parseFloat(e.target.value) || 0)}
                                                         className="w-full px-2 py-2 bg-discord-dark border-none rounded text-sm text-discord-text text-right"
-                                                        placeholder="Price"
+                                                        placeholder="Price (EGP)"
                                                     />
                                                 </div>
                                                 <button
@@ -989,7 +989,7 @@ export default function CreateTaskDialog({
                                     {/* Total */}
                                     <div className="flex justify-between items-center py-2 px-3 bg-discord-dark/50 rounded border border-white/5">
                                         <span className="text-xs font-bold text-discord-text-muted uppercase">Grand Total</span>
-                                        <span className="text-lg font-bold text-green-400">${opsGrandTotal.toFixed(2)}</span>
+                                        <span className="text-sm font-bold text-emerald-400">{opsGrandTotal.toLocaleString()} EGP</span>
                                     </div>
 
                                     {/* Conditional Order fields */}
@@ -1206,14 +1206,14 @@ export default function CreateTaskDialog({
 
                                             <div>
                                                 <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
-                                                    Budget
+                                                    Budget (EGP)
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={budget}
                                                     onChange={(e) => setBudget(e.target.value)}
                                                     className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                                                    placeholder="Expected budget"
+                                                    placeholder="Expected budget (EGP)"
                                                 />
                                             </div>
 

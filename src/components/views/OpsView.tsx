@@ -294,10 +294,10 @@ export default function OpsView() {
                         {/* Optional Price Adjustment */}
                         <div className="space-y-2">
                             <label className="text-xs font-black text-discord-text-muted uppercase tracking-widest flex items-center gap-2">
-                                <DollarSign size={14} /> Final Price Adjustment
+                                <div className="text-xs font-bold">EGP</div> Final Price Adjustment
                             </label>
                             <div className="relative">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-discord-text-muted" size={16} />
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-discord-text-muted text-xs font-bold">EGP</div>
                                 <input
                                     type="number"
                                     value={editPrice}
@@ -471,8 +471,8 @@ function ShipmentCard({ task, onUpdate }: { task: Task; onUpdate: () => void }) 
                                     <tr key={idx} className="text-discord-text-muted">
                                         <td className="px-2 py-1.5 truncate max-w-[80px]" title={item.name}>{item.name}</td>
                                         <td className="px-1 py-1.5 text-center">{item.qty}</td>
-                                        <td className="px-2 py-1.5 text-right">${(item.price || 0).toFixed(0)}</td>
-                                        <td className="px-2 py-1.5 text-right font-bold text-discord-text">${((item.qty || 0) * (item.price || 0)).toFixed(0)}</td>
+                                        <td className="px-2 py-1.5 text-right">{(item.price || 0).toFixed(0)} EGP</td>
+                                        <td className="px-2 py-1.5 text-right font-bold text-discord-text">{((item.qty || 0) * (item.price || 0)).toFixed(0)} EGP</td>
                                     </tr>
                                 ))}
                             </tbody>

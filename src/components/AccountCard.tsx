@@ -168,7 +168,7 @@ export default function AccountCard({ task, onUpdate, onEdit }: AccountCardProps
                     <div className="min-w-0">
                         <p className="text-[10px] font-bold text-discord-text-muted uppercase">Budget</p>
                         <p className="text-sm text-discord-text truncate">
-                            {meta.budget || "—"}
+                            {meta.budget ? `${meta.budget} EGP` : "—"}
                         </p>
                     </div>
                 </div>

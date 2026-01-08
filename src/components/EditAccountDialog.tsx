@@ -301,7 +301,7 @@ export default function EditAccountDialog({
                                     value={budget}
                                     onChange={(e) => setBudget(e.target.value)}
                                     className="w-full px-3 py-2 bg-discord-dark border-none rounded text-discord-text placeholder-discord-text-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple"
-                                    placeholder="Expected budget"
+                                    placeholder="Expected budget (EGP)"
                                 />
                             </div>
 

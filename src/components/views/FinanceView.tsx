@@ -296,14 +296,14 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                             {item.supplier_name}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-discord-text-muted">
-                                            ${item.amount_base.toLocaleString()}
+                                            {item.amount_base.toLocaleString()} EGP
                                         </td>
                                         <td className="px-6 py-4 text-sm text-orange-400">
-                                            ${item.amount_vat.toLocaleString()}
+                                            {item.amount_vat.toLocaleString()} EGP
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-sm font-bold text-emerald-400">
-                                                ${item.amount_total.toLocaleString()}
+                                                {item.amount_total.toLocaleString()} EGP
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-discord-text-muted truncate max-w-[200px]">
@@ -345,7 +345,7 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                             Total {filter}
                                         </td>
                                         <td className="px-6 py-4 text-emerald-400 text-lg">
-                                            ${totalAmount.toLocaleString()}
+                                            {totalAmount.toLocaleString()} EGP
                                         </td>
                                         <td colSpan={2}></td>
                                     </tr>

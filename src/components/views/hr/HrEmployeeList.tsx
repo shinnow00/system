@@ -156,12 +156,11 @@ export default function HrEmployeeList() {
                                         {editingId === p.id ? (
                                             <div className="flex items-center gap-2">
                                                 <div className="relative w-32">
-                                                    <DollarSign size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-discord-text-muted" />
                                                     <input
                                                         type="number"
                                                         value={tempSalary}
                                                         onChange={(e) => setTempSalary(e.target.value)}
-                                                        className="w-full bg-discord-dark border border-discord-blurple rounded px-2 pl-6 py-1.5 text-sm text-discord-text outline-none"
+                                                        className="w-full bg-discord-dark border border-discord-blurple rounded px-2 py-1.5 text-sm text-discord-text outline-none"
                                                         autoFocus
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') saveSalary(p.id);
@@ -190,10 +189,10 @@ export default function HrEmployeeList() {
                                                 className="group/salary flex items-center gap-2 cursor-pointer py-1 px-2 -ml-2 rounded hover:bg-white/[0.05] transition-colors w-fit"
                                             >
                                                 <span className={`text-sm font-mono ${p.salary ? "text-green-400" : "text-discord-text-muted italic"}`}>
-                                                    {p.salary ? `$${p.salary.toLocaleString()}` : "Set Salary"}
+                                                    {p.salary ? `${p.salary.toLocaleString()} EGP` : "Set Salary"}
                                                 </span>
                                                 <div className="opacity-0 group-hover/salary:opacity-100 transition-opacity">
-                                                    <DollarSign size={14} className="text-discord-text-muted" />
+                                                    <span className="text-[10px] text-discord-text-muted font-bold">EGP</span>
                                                 </div>
                                             </div>
                                         )}

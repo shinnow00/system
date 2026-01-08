@@ -128,7 +128,7 @@ export default function EditAttendanceDialog({
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wider flex items-center gap-1">
                                 <TrendingUp size={14} className="text-green-400" />
-                                Bonus ($)
+                                Bonus (EGP)
                             </label>
                             <input
                                 type="number"
@@ -160,7 +160,7 @@ export default function EditAttendanceDialog({
                                         onClick={() => setDeductionType("Amount")}
                                         className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded ${deductionType === "Amount" ? "bg-discord-blurple text-white" : "text-discord-text-muted hover:text-discord-text"}`}
                                     >
-                                        $
+                                        EGP
                                     </button>
                                 </div>
                             </div>
@@ -183,7 +183,7 @@ export default function EditAttendanceDialog({
                                         value={deductionAmount}
                                         onChange={(e) => setDeductionAmount(Number(e.target.value))}
                                         min="0"
-                                        placeholder="$"
+                                        placeholder="EGP"
                                         className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
                                     />
                                     <input

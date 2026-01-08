@@ -95,7 +95,7 @@ export default function AccountsView() {
                 </div>
                 <div className="bg-discord-sidebar rounded-lg p-4 border border-discord-dark">
                     <p className="text-discord-text-muted text-sm mb-1 uppercase font-bold">Pipeline Budget</p>
-                    <p className="text-2xl font-bold text-discord-blurple">${totalValue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-discord-blurple">{totalValue.toLocaleString()} EGP</p>
                 </div>
                 <div className="bg-discord-sidebar rounded-lg p-4 border border-discord-dark">
                     <p className="text-discord-text-muted text-sm mb-1 uppercase font-bold">Active Deals</p>

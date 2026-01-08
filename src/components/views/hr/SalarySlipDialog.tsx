@@ -121,7 +121,7 @@ export default function SalarySlipDialog({ isOpen, onClose, employee }: SalarySl
 
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wider">
-                            Insurance Cost ($)
+                            Insurance Cost (EGP)
                         </label>
                         <input
                             type="number"
@@ -146,24 +146,24 @@ export default function SalarySlipDialog({ isOpen, onClose, employee }: SalarySl
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between items-center text-discord-text-muted">
                                     <span>Base Salary</span>
-                                    <span className="font-mono text-discord-text">${payslip.baseSalary.toLocaleString()}</span>
+                                    <span className="font-mono text-discord-text">{payslip.baseSalary.toLocaleString()} EGP</span>
                                 </div>
                                 <div className="flex justify-between items-center text-green-400">
                                     <span>(+) Bonuses</span>
-                                    <span className="font-mono">+${payslip.totalBonus.toLocaleString()}</span>
+                                    <span className="font-mono">+{payslip.totalBonus.toLocaleString()} EGP</span>
                                 </div>
                                 <div className="flex justify-between items-center text-red-400">
                                     <span>(-) Absence/Late ({payslip.totalDayDeductions} Days)</span>
-                                    <span className="font-mono">-${payslip.dayDeductionCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                    <span className="font-mono">-{payslip.dayDeductionCost.toLocaleString(undefined, { maximumFractionDigits: 2 })} EGP</span>
                                 </div>
                                 <div className="flex justify-between items-center text-red-400">
                                     <span>(-) Cash Penalties</span>
-                                    <span className="font-mono">-${payslip.totalCashDeductions.toLocaleString()}</span>
+                                    <span className="font-mono">-{payslip.totalCashDeductions.toLocaleString()} EGP</span>
                                 </div>
                                 {payslip.insuranceCost > 0 && (
                                     <div className="flex justify-between items-center text-red-400">
                                         <span>(-) Insurance</span>
-                                        <span className="font-mono">-${payslip.insuranceCost.toLocaleString()}</span>
+                                        <span className="font-mono">-{payslip.insuranceCost.toLocaleString()} EGP</span>
                                     </div>
                                 )}
                             </div>
@@ -173,7 +173,7 @@ export default function SalarySlipDialog({ isOpen, onClose, employee }: SalarySl
                             <div className="flex justify-between items-center pt-2">
                                 <span className="font-bold text-discord-text uppercase tracking-wider text-sm">Final Pay</span>
                                 <span className="text-2xl font-black text-discord-blurple">
-                                    ${payslip.netSalary.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                    {payslip.netSalary.toLocaleString(undefined, { maximumFractionDigits: 2 })} EGP
                                 </span>
                             </div>
                         </div>

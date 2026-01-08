@@ -137,7 +137,7 @@ export default function HrDatabaseBoard() {
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">National ID</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Started</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Annuals Left</th>
-                                <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Insurance</th>
+                                <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider">Comp (EGP)</th>
                                 <th className="px-6 py-4 text-xs font-bold text-discord-text-muted uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
