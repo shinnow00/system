@@ -27,6 +27,8 @@ interface DiscordLayoutProps {
     setHrFilter?: (filter: any) => void;
     financeFilter?: string;
     setFinanceFilter?: (filter: any) => void;
+    opsFilter?: string;
+    setOpsFilter?: (filter: any) => void;
 }
 
 export default function DiscordLayout({
@@ -46,6 +48,8 @@ export default function DiscordLayout({
     setHrFilter = () => { },
     financeFilter = 'payments',
     setFinanceFilter = () => { },
+    opsFilter = 'tracking',
+    setOpsFilter = () => { },
 }: DiscordLayoutProps) {
     const channels = channelsByDepartment[activeDepartment as keyof typeof channelsByDepartment] || [];
     const activeChannelId = channels[0]?.id || "general";
@@ -133,6 +137,8 @@ export default function DiscordLayout({
                 setHrFilter={setHrFilter}
                 financeFilter={financeFilter}
                 setFinanceFilter={setFinanceFilter}
+                opsFilter={opsFilter}
+                setOpsFilter={setOpsFilter}
             />
 
             {/* Desktop: Server Rail - Left side icons - Hidden on Mobile */}
@@ -166,6 +172,8 @@ export default function DiscordLayout({
                     setHrFilter={setHrFilter}
                     financeFilter={financeFilter}
                     setFinanceFilter={setFinanceFilter}
+                    opsFilter={opsFilter}
+                    setOpsFilter={setOpsFilter}
                 />
             </div>
 

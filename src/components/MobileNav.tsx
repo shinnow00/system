@@ -30,6 +30,8 @@ interface MobileNavProps {
     setHrFilter?: (filter: any) => void;
     financeFilter?: string;
     setFinanceFilter?: (filter: any) => void;
+    opsFilter?: string;
+    setOpsFilter?: (filter: any) => void;
 }
 
 export default function MobileNav({
@@ -54,7 +56,9 @@ export default function MobileNav({
     hrFilter,
     setHrFilter,
     financeFilter,
-    setFinanceFilter
+    setFinanceFilter,
+    opsFilter,
+    setOpsFilter
 }: MobileNavProps) {
     return (
         <div className="md:hidden h-14 bg-discord-dark border-b border-black/20 flex items-center px-4 justify-between flex-shrink-0">
@@ -95,6 +99,10 @@ export default function MobileNav({
                                 setSocialFilter={setSocialFilter}
                                 hrFilter={hrFilter}
                                 setHrFilter={setHrFilter}
+                                financeFilter={financeFilter}
+                                setFinanceFilter={setFinanceFilter}
+                                opsFilter={opsFilter}
+                                setOpsFilter={setOpsFilter}
                             />
                         </div>
                     </SheetContent>

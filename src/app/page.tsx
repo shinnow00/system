@@ -44,6 +44,7 @@ export default function Home() {
   const [socialFilter, setSocialFilter] = useState('calendar');
   const [hrFilter, setHrFilter] = useState('attendance');
   const [financeFilter, setFinanceFilter] = useState<"payments" | "sales" | "inventory">('payments');
+  const [opsFilter, setOpsFilter] = useState('tracking');
   const router = useRouter();
 
   useEffect(() => {
@@ -144,7 +145,7 @@ export default function Home() {
             </div>
 
             <div className={activeDepartment === "ops" ? "flex flex-col flex-1 h-full" : "hidden"}>
-              <OpsView key={`ops-${refreshKey}`} />
+              <OpsView key={`ops-${refreshKey}`} filter={opsFilter} />
             </div>
 
             <div className={activeDepartment === "finance" ? "flex flex-col flex-1 h-full" : "hidden"}>
@@ -177,18 +178,22 @@ export default function Home() {
         onCreateTask={() => setCreateTaskOpen(true)}
         isGeneralChat={isGeneralChat}
         onToggleGeneralChat={setIsGeneralChat}
-        activeChannel={activeDepartment === "design" ? designFilter : activeDepartment === "social" ? socialFilter : activeDepartment === "hr" ? hrFilter : activeDepartment === "finance" ? financeFilter : currentChannel}
+        activeChannel={activeDepartment === "design" ? designFilter : activeDepartment === "social" ? socialFilter : activeDepartment === "hr" ? hrFilter : activeDepartment === "finance" ? financeFilter : activeDepartment === "ops" ? opsFilter : currentChannel}
         socialFilter={socialFilter}
         setSocialFilter={setSocialFilter}
         hrFilter={hrFilter}
         setHrFilter={setHrFilter}
         financeFilter={financeFilter}
         setFinanceFilter={setFinanceFilter}
+        opsFilter={opsFilter}
+        setOpsFilter={setOpsFilter}
         onChannelChange={(id) => {
           if (activeDepartment === "design") {
             setDesignFilter(id);
           } else if (activeDepartment === "finance") {
             setFinanceFilter(id as any);
+          } else if (activeDepartment === "ops") {
+            setOpsFilter(id);
           } else {
             setCurrentChannel(id);
           }

@@ -59,29 +59,22 @@ export default function SocialView({ filter = 'calendar' }: SocialViewProps) {
                 return;
             }
 
-            // Filter locally to guarantee logic
+            // Strict Whitelist Filtering
             const filteredTasks = (allTasks || []).filter(task => {
                 const meta = (task.meta_data as any) || {};
-                const type = meta.type || 'calendar'; // Default to calendar if missing
 
-                // Strict Filtering
-                if (filter === 'shooting') {
-                    return type === 'shooting';
-                }
-
-                if (filter === 'calendar') {
-                    const meta = (task.meta_data as any) || {};
-
-                    // 1. Hide Shooting Tasks
-                    if (meta.type === 'shooting') return false;
-
-                    // 2. Hide "Post Production" Design Tasks
-                    if (task.title.startsWith('Shooting Post-Prod')) return false;
-
-                    // 3. Otherwise, show normal social/design stuff
+                // 1. ALWAYS show tasks that belong to Social Media (Internal)
+                if (task.department === 'Social Media') {
                     return true;
                 }
 
+                // 2. FOR DESIGNER TASKS:
+                // ONLY show them if they have the specific "Social Request" signature.
+                if (task.department === 'Designers') {
+                    return meta.origin === 'social_request';
+                }
+
+                // 3. Hide everything else (Ops tasks, Account tasks, etc)
                 return false;
             });
 
