@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2, Plus, Calculator, Package, TrendingUp, TrendingDown, Search, Image as ImageIcon, Pencil, Trash2, ArrowUpRight } from "lucide-react";
+import { Loader2, Plus, Calculator, Package, TrendingUp, TrendingDown, Search, Image as ImageIcon, Pencil, Trash2, ArrowUpRight, Calendar, User, Filter, ArrowUp, ArrowDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AddFinanceDialog from "@/components/AddFinanceDialog";
 import InventoryMovementDialog from "@/components/InventoryMovementDialog";
@@ -19,7 +19,9 @@ interface FinanceRecord {
     amount_total: number;
     description: string;
     type: 'payment' | 'sale';
+    payment_status?: 'Pending' | 'Paid' | 'Overdue' | 'Cancelled';
     created_at: string;
+    created_by?: string;
 }
 
 interface InventoryRecord {
@@ -50,6 +52,19 @@ export default function FinanceView({ filter }: FinanceViewProps) {
     const [selectedInventoryItem, setSelectedInventoryItem] = useState<any>(null);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
+
+    // Advanced Filtering States
+    const [dateFilter, setDateFilter] = useState<{ mode: 'all' | 'day' | 'week' | 'month' | 'year', value: string }>({
+        mode: 'all',
+        value: new Date().toISOString().split('T')[0]
+    });
+    const [userFilter, setUserFilter] = useState<string>("");
+    const [amountSort, setAmountSort] = useState<'asc' | 'desc' | 'none'>('none');
+    const [amountFilter, setAmountFilter] = useState<{ operator: 'none' | 'lt' | 'gt' | 'eq', value: number }>({
+        operator: 'none',
+        value: 0
+    });
+    const [vatFilter, setVatFilter] = useState<'all' | 'with_vat' | 'no_vat'>('all');
 
     useEffect(() => {
         fetchData();
@@ -122,16 +137,90 @@ export default function FinanceView({ filter }: FinanceViewProps) {
         );
     }
 
-    const filteredFinance = financeData.filter(item =>
-        item.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Finance Processing Logic
+    const processedFinanceData = useMemo(() => {
+        return financeData
+            .filter(item => {
+                // Search term (Supplier/Client, Invoice, Description)
+                if (searchTerm) {
+                    const search = searchTerm.toLowerCase();
+                    const matchesSearch =
+                        item.supplier_name?.toLowerCase().includes(search) ||
+                        item.invoice_number?.toLowerCase().includes(search) ||
+                        item.description?.toLowerCase().includes(search);
+                    if (!matchesSearch) return false;
+                }
+
+                // VAT Filter
+                if (vatFilter === 'with_vat' && (!item.amount_vat || item.amount_vat === 0)) return false;
+                if (vatFilter === 'no_vat' && item.amount_vat > 0) return false;
+
+                // Amount Threshold Filter
+                if (amountFilter.operator !== 'none') {
+                    if (amountFilter.operator === 'lt' && item.amount_base >= amountFilter.value) return false;
+                    if (amountFilter.operator === 'gt' && item.amount_base <= amountFilter.value) return false;
+                    if (amountFilter.operator === 'eq' && item.amount_base !== amountFilter.value) return false;
+                }
+
+                // Date Filter (Day, Week, Month, Year logic)
+                if (dateFilter.mode !== 'all') {
+                    const itemDate = new Date(item.date);
+                    const filterDate = new Date(dateFilter.value);
+
+                    if (dateFilter.mode === 'day') {
+                        if (itemDate.toDateString() !== filterDate.toDateString()) return false;
+                    } else if (dateFilter.mode === 'month') {
+                        if (itemDate.getMonth() !== filterDate.getMonth() || itemDate.getFullYear() !== filterDate.getFullYear()) return false;
+                    } else if (dateFilter.mode === 'year') {
+                        if (itemDate.getFullYear() !== filterDate.getFullYear()) return false;
+                    } else if (dateFilter.mode === 'week') {
+                        // Week logic: compare start of week
+                        const getStartOfWeek = (d: Date) => {
+                            const date = new Date(d);
+                            const day = date.getDay();
+                            const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+                            return new Date(date.setDate(diff)).toDateString();
+                        };
+                        if (getStartOfWeek(itemDate) !== getStartOfWeek(filterDate)) return false;
+                    }
+                }
+
+                // User Filter
+                if (userFilter && item.created_by !== userFilter) return false;
+
+                return true;
+            })
+            .sort((a, b) => {
+                // Amount Sorting
+                if (amountSort === 'asc') return a.amount_base - b.amount_base;
+                if (amountSort === 'desc') return b.amount_base - a.amount_base;
+                // Default to newest date
+                return new Date(b.date).getTime() - new Date(a.date).getTime();
+            });
+    }, [financeData, searchTerm, dateFilter, userFilter, amountSort, amountFilter, vatFilter]);
 
     const filteredInventory = inventoryData.filter(item =>
         item.item_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.item_code?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Unique Users for filter dropdown (we only have created_by IDs, potentially need to join with profiles or just use what we have)
+    const uniqueUsers = useMemo(() => {
+        const users = new Set<string>();
+        financeData.forEach(item => {
+            if (item.created_by) users.add(item.created_by);
+        });
+        return Array.from(users);
+    }, [financeData]);
+
+    const totalAmountValue = processedFinanceData.reduce((sum, item) => sum + item.amount_total, 0);
+
+    const statusColors: Record<string, string> = {
+        Paid: "text-emerald-400 bg-emerald-400/10",
+        Pending: "text-yellow-400 bg-yellow-400/10",
+        Overdue: "text-red-400 bg-red-400/10",
+        Cancelled: "text-discord-text-muted bg-discord-dark/50"
+    };
 
     return (
         <div className="max-w-7xl mx-auto">
@@ -173,6 +262,138 @@ export default function FinanceView({ filter }: FinanceViewProps) {
             {error && (
                 <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 text-red-400 mb-6 font-medium">
                     {error}
+                </div>
+            )}
+
+            {/* Filter Toolbar */}
+            {filter !== 'inventory' && (
+                <div className="bg-discord-sidebar/50 backdrop-blur-sm border border-white/5 rounded-xl p-4 mb-6 space-y-4">
+                    <div className="flex flex-wrap items-center gap-6">
+                        {/* Date Filter */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 text-discord-text-muted">
+                                <Calendar size={16} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Date</span>
+                            </div>
+                            <div className="flex bg-discord-dark rounded-lg p-1">
+                                {(['all', 'day', 'week', 'month', 'year'] as const).map((m) => (
+                                    <button
+                                        key={m}
+                                        onClick={() => setDateFilter({ ...dateFilter, mode: m })}
+                                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all ${dateFilter.mode === m ? 'bg-discord-blurple text-white shadow-lg' : 'text-discord-text-muted hover:text-discord-text'
+                                            }`}
+                                    >
+                                        {m}
+                                    </button>
+                                ))}
+                            </div>
+                            {dateFilter.mode !== 'all' && (
+                                <input
+                                    type="date"
+                                    value={dateFilter.value}
+                                    onChange={(e) => setDateFilter({ ...dateFilter, value: e.target.value })}
+                                    className="bg-discord-dark border-none rounded-lg px-3 py-1.5 text-xs text-discord-text focus:ring-1 focus:ring-discord-blurple outline-none"
+                                />
+                            )}
+                        </div>
+
+                        {/* User Filter */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 text-discord-text-muted">
+                                <User size={16} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Created By</span>
+                            </div>
+                            <select
+                                value={userFilter}
+                                onChange={(e) => setUserFilter(e.target.value)}
+                                className="bg-discord-dark border-none rounded-lg px-3 py-1.5 text-xs text-discord-text focus:ring-1 focus:ring-discord-blurple outline-none cursor-pointer min-w-[120px]"
+                            >
+                                <option value="">All Users</option>
+                                {uniqueUsers.map(uid => (
+                                    <option key={uid} value={uid}>{uid.slice(0, 8)}...</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* VAT Filter */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 text-discord-text-muted">
+                                <Filter size={16} />
+                                <span className="text-xs font-bold uppercase tracking-wider">VAT</span>
+                            </div>
+                            <select
+                                value={vatFilter}
+                                onChange={(e) => setVatFilter(e.target.value as any)}
+                                className="bg-discord-dark border-none rounded-lg px-3 py-1.5 text-xs text-discord-text focus:ring-1 focus:ring-discord-blurple outline-none cursor-pointer"
+                            >
+                                <option value="all">All</option>
+                                <option value="with_vat">With VAT</option>
+                                <option value="no_vat">No VAT</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/5">
+                        {/* Amount Filter */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 text-discord-text-muted">
+                                <Calculator size={16} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Amount</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={amountFilter.operator}
+                                    onChange={(e) => setAmountFilter({ ...amountFilter, operator: e.target.value as any })}
+                                    className="bg-discord-dark border-none rounded-lg px-2 py-1.5 text-xs text-discord-text focus:ring-1 focus:ring-discord-blurple outline-none cursor-pointer"
+                                >
+                                    <option value="none">Any</option>
+                                    <option value="lt">Less than (&lt;)</option>
+                                    <option value="gt">Greater than (&gt;)</option>
+                                    <option value="eq">Equal to (=)</option>
+                                </select>
+                                {amountFilter.operator !== 'none' && (
+                                    <input
+                                        type="number"
+                                        placeholder="Value..."
+                                        value={amountFilter.value || ""}
+                                        onChange={(e) => setAmountFilter({ ...amountFilter, value: Number(e.target.value) })}
+                                        className="bg-discord-dark border-none rounded-lg px-3 py-1.5 text-xs text-discord-text focus:ring-1 focus:ring-discord-blurple outline-none w-24"
+                                    />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Sorting */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 text-discord-text-muted">
+                                {amountSort === 'desc' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
+                                <span className="text-xs font-bold uppercase tracking-wider">Sort Amount</span>
+                            </div>
+                            <button
+                                onClick={() => setAmountSort(amountSort === 'asc' ? 'desc' : amountSort === 'desc' ? 'none' : 'asc')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${amountSort !== 'none' ? 'bg-discord-blurple text-white shadow-lg' : 'bg-discord-dark text-discord-text-muted hover:text-discord-text'
+                                    }`}
+                            >
+                                {amountSort === 'none' ? 'None' : amountSort === 'asc' ? 'Low → High' : 'High → Low'}
+                            </button>
+                        </div>
+
+                        {/* Clear Filters */}
+                        <button
+                            onClick={() => {
+                                setDateFilter({ mode: 'all', value: new Date().toISOString().split('T')[0] });
+                                setUserFilter("");
+                                setVatFilter("all");
+                                setAmountFilter({ operator: 'none', value: 0 });
+                                setAmountSort("none");
+                                setSearchTerm("");
+                            }}
+                            className="ml-auto text-xs text-discord-text-muted hover:text-red-400 transition-colors flex items-center gap-1 font-bold uppercase"
+                        >
+                            <X size={14} />
+                            Reset All
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -274,15 +495,15 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                     <th className="px-6 py-4">Date</th>
                                     <th className="px-6 py-4">Invoice #</th>
                                     <th className="px-6 py-4">Supplier/Client</th>
+                                    <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Base Amount</th>
                                     <th className="px-6 py-4">VAT</th>
                                     <th className="px-6 py-4">Total</th>
-                                    <th className="px-6 py-4">Description</th>
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {filteredFinance.map((item) => (
+                                {processedFinanceData.map((item) => (
                                     <tr key={item.id} className="hover:bg-white/[0.02] transition-colors group">
                                         <td className="px-6 py-4 text-sm text-discord-text">
                                             {new Date(item.date).toLocaleDateString()}
@@ -293,7 +514,17 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium text-discord-text">
-                                            {item.supplier_name}
+                                            <div className="flex flex-col">
+                                                <span>{item.supplier_name}</span>
+                                                <span className="text-[10px] text-discord-text-muted truncate max-w-[150px] font-normal">
+                                                    {item.description}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${statusColors[item.payment_status || 'Pending']}`}>
+                                                {item.payment_status || 'Pending'}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-discord-text-muted">
                                             {item.amount_base.toLocaleString()} EGP
@@ -305,9 +536,6 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                             <span className="text-sm font-bold text-emerald-400">
                                                 {item.amount_total.toLocaleString()} EGP
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-discord-text-muted truncate max-w-[200px]">
-                                            {item.description}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -329,7 +557,7 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredFinance.length === 0 && (
+                                {processedFinanceData.length === 0 && (
                                     <tr>
                                         <td colSpan={8} className="px-6 py-20 text-center">
                                             <Calculator size={48} className="mx-auto text-discord-text-muted/20 mb-3" />
@@ -338,16 +566,16 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                     </tr>
                                 )}
                             </tbody>
-                            {filteredFinance.length > 0 && (
+                            {processedFinanceData.length > 0 && (
                                 <tfoot>
                                     <tr className="bg-black/30 font-bold">
-                                        <td colSpan={5} className="px-6 py-4 text-right text-discord-text-muted uppercase text-xs tracking-widest">
+                                        <td colSpan={6} className="px-6 py-4 text-right text-discord-text-muted uppercase text-xs tracking-widest">
                                             Total {filter}
                                         </td>
                                         <td className="px-6 py-4 text-emerald-400 text-lg">
-                                            {totalAmount.toLocaleString()} EGP
+                                            {totalAmountValue.toLocaleString()} EGP
                                         </td>
-                                        <td colSpan={2}></td>
+                                        <td colSpan={1}></td>
                                     </tr>
                                 </tfoot>
                             )}

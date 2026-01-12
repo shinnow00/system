@@ -40,6 +40,7 @@ export default function AddFinanceDialog({
         description: "",
         amount_base: 0,
         amount_vat: 0,
+        payment_status: "Pending" as "Pending" | "Paid" | "Overdue" | "Cancelled",
     });
 
     // Inventory State
@@ -85,6 +86,7 @@ export default function AddFinanceDialog({
                         description: editingItem.description || "",
                         amount_base: editingItem.amount_base || 0,
                         amount_vat: editingItem.amount_vat || 0,
+                        payment_status: editingItem.payment_status || "Pending",
                     });
                 }
             } else {
@@ -110,6 +112,7 @@ export default function AddFinanceDialog({
                         description: "",
                         amount_base: 0,
                         amount_vat: 0,
+                        payment_status: "Pending",
                     });
                 }
             }
@@ -189,7 +192,8 @@ export default function AddFinanceDialog({
                             amount_base: Number(financeForm.amount_base),
                             amount_vat: Number(financeForm.amount_vat),
                             amount_total: Number(amountTotal),
-                            type: filter === 'payments' ? 'payment' : 'sale'
+                            type: filter === 'payments' ? 'payment' : 'sale',
+                            payment_status: financeForm.payment_status
                         })
                         .eq('id', editingItem.id);
                     if (updateError) throw updateError;
@@ -201,7 +205,8 @@ export default function AddFinanceDialog({
                             amount_base: Number(financeForm.amount_base),
                             amount_vat: Number(financeForm.amount_vat),
                             amount_total: Number(amountTotal),
-                            type: filter === 'payments' ? 'payment' : 'sale'
+                            type: filter === 'payments' ? 'payment' : 'sale',
+                            payment_status: financeForm.payment_status
                         });
                     if (insertError) throw insertError;
                 }
@@ -380,6 +385,33 @@ export default function AddFinanceDialog({
                                         className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
                                     />
                                 </div>
+                                {filter === 'payments' ? (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-discord-text-muted uppercase">Payment Status</label>
+                                        <select
+                                            value={financeForm.payment_status}
+                                            onChange={(e) => setFinanceForm({ ...financeForm, payment_status: e.target.value as any })}
+                                            className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none appearance-none cursor-pointer"
+                                        >
+                                            <option value="Pending">Pending</option>
+                                            <option value="Paid">Paid</option>
+                                            <option value="Overdue">Overdue</option>
+                                            <option value="Cancelled">Cancelled</option>
+                                        </select>
+                                    </div>
+                                ) : filter === 'sales' ? (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-discord-text-muted uppercase">Collection Status</label>
+                                        <select
+                                            value={financeForm.payment_status}
+                                            onChange={(e) => setFinanceForm({ ...financeForm, payment_status: e.target.value as any })}
+                                            className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none appearance-none cursor-pointer"
+                                        >
+                                            <option value="Pending">Pending</option>
+                                            <option value="Paid">Collected</option>
+                                        </select>
+                                    </div>
+                                ) : null}
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="text-xs font-bold text-discord-text-muted uppercase">Description</label>
                                     <textarea
