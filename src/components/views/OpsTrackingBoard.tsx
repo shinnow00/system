@@ -333,6 +333,11 @@ export default function OpsTrackingBoard() {
 }
 
 function ShipmentCard({ task, onOpenDetail, onRefresh }: { task: Task; onOpenDetail: () => void; onRefresh: () => void }) {
+    const [linkedTask, setLinkedTask] = useState<Task | null>(null);
+    const [linkedParts, setLinkedParts] = useState<TaskPart[]>([]);
+    const [showCreateDesignDialog, setShowCreateDesignDialog] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+
     const meta = (task.meta_data as any) || {};
     const clientName = (meta.client_name as string) || "Individual Client";
     const companyName = (meta.company_name as string) || "";
@@ -341,11 +346,6 @@ function ShipmentCard({ task, onOpenDetail, onRefresh }: { task: Task; onOpenDet
     const location = (meta.location as string) || (meta.shipping_location as string) || "TBD";
     const opsStatus = (meta.ops_status as string) || "In Progress";
     const taskType = (meta.type as string) || "pricing";
-
-    const [linkedTask, setLinkedTask] = useState<Task | null>(null);
-    const [linkedParts, setLinkedParts] = useState<TaskPart[]>([]);
-    const [showCreateDesignDialog, setShowCreateDesignDialog] = useState(false);
-    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     useEffect(() => {
         if (meta.linked_design_task_id) {

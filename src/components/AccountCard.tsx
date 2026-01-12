@@ -22,13 +22,12 @@ interface AccountCardProps {
 }
 
 export default function AccountCard({ task, onUpdate, onEdit }: AccountCardProps) {
-    const meta = (task.meta_data as any) || {};
     const [updatingStatus, setUpdatingStatus] = useState(false);
-
-    // Linked Task State
     const [linkedTask, setLinkedTask] = useState<Task | null>(null);
     const [linkedParts, setLinkedParts] = useState<TaskPart[]>([]);
     const [showCreateDesignDialog, setShowCreateDesignDialog] = useState(false);
+
+    const meta = (task.meta_data as any) || {};
 
     useEffect(() => {
         if (meta.linked_design_task_id) {
