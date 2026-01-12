@@ -266,6 +266,16 @@ function HomeContent() {
 }
 
 export default function Home() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return <div className="h-screen w-full bg-discord-bg" />;
+  }
+
   return (
     <Suspense fallback={<LoadingScreen />}>
       <HomeContent />
