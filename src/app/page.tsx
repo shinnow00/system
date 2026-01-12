@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Profile } from "@/types/database";
 import DiscordLayout from "@/components/DiscordLayout";
-import { Department, DB_TO_UI_MAP } from "@/utils/departments";
+import { Department } from "@/utils/departments";
 import DesignView from "@/components/views/DesignView";
 import SocialView from "@/components/views/SocialView";
 import AccountsView from "@/components/views/AccountsView";
@@ -100,20 +100,17 @@ function HomeContent() {
           updated_at: new Date().toISOString(),
         });
       } else {
-        console.log("User Dept:", profileData.department);
         setProfile(profileData);
         // Only set default department if one isn't in the URL
-        const normalizedDept = profileData.department ? DB_TO_UI_MAP[profileData.department] : null;
-
-        if (normalizedDept && !urlDept) {
-          setActiveDepartment(normalizedDept);
+        if (profileData.department && !urlDept) {
+          setActiveDepartment(profileData.department);
           // When setting default dept, also update URL if needed
-          const defaultChannel = normalizedDept === "design" ? "my-tasks" :
-            normalizedDept === "social" ? "calendar" :
-              normalizedDept === "hr" ? "attendance" :
-                normalizedDept === "finance" ? "payments" :
-                  normalizedDept === "ops" ? "tracking" : "general";
-          updateUrl(normalizedDept, defaultChannel);
+          const defaultChannel = profileData.department === "design" ? "my-tasks" :
+            profileData.department === "social" ? "calendar" :
+              profileData.department === "hr" ? "attendance" :
+                profileData.department === "finance" ? "payments" :
+                  profileData.department === "ops" ? "tracking" : "general";
+          updateUrl(profileData.department, defaultChannel);
         }
       }
 

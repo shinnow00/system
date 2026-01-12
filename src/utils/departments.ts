@@ -3,27 +3,6 @@ import { Home, Users, Truck, Cog, Shield, Instagram, Briefcase, Calculator } fro
 // Department type
 export type Department = "design" | "social" | "accounts" | "hr" | "ops" | "superadmin" | "home" | "finance";
 
-export const DB_TO_UI_MAP: Record<string, Department> = {
-    'Designers': 'design',
-    'Designer': 'design', // Handle singular typo
-
-    'Social Media': 'social',
-    'Social': 'social', // Handle short version
-
-    'Account Managers': 'accounts',
-    'Account Manager': 'accounts',
-
-    'Operations': 'ops',
-
-    'Hr': 'hr',
-    'HR': 'hr',
-
-    'Finance & Inventory': 'finance',
-    'Finance': 'finance',
-
-    'Admin': 'admin' as any // Admin maps to superadmin usually or is handled separately
-};
-
 // Department icons for the server rail
 export const departments: { id: Department; icon: typeof Home; name: string; color: string }[] = [
     { id: "design", icon: Users, name: "Designers", color: "bg-discord-green" },
