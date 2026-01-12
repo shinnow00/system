@@ -44,19 +44,22 @@ export default function AccountCard({ task, onUpdate, onEdit }: AccountCardProps
             .from("tasks")
             .select("*, task_parts(*)")
             .eq("id", linkedId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error("Error fetching linked task:", error);
             return;
         }
 
-        if (taskData) {
-            const { task_parts, ...cleanTask } = taskData as any;
-
-            setLinkedTask(cleanTask);
-            setLinkedParts((task_parts || []) as TaskPart[]);
+        if (!taskData) {
+            setLinkedTask(null);
+            setLinkedParts([]);
+            return;
         }
+        const { task_parts, ...cleanTask } = taskData as any;
+
+        setLinkedTask(cleanTask);
+        setLinkedParts((task_parts || []) as TaskPart[]);
     };
 
     const handleStatusChange = async (newStatus: string) => {

@@ -70,12 +70,21 @@ export default function ShootingCard({ task, onUpdate }: ShootingCardProps) {
             if (!linkedTaskId) return;
             setLoadingLinkedStatus(true);
             const supabase = createClient();
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from("tasks")
                 .select("status")
                 .eq("id", linkedTaskId)
-                .single();
-            if (data) setLinkedTaskStatus(data.status);
+                .maybeSingle();
+
+            if (error) {
+                console.error("Error fetching linked task status:", error);
+            }
+
+            if (!data) {
+                setLinkedTaskStatus(null);
+            } else {
+                setLinkedTaskStatus(data.status);
+            }
             setLoadingLinkedStatus(false);
         };
 

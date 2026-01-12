@@ -359,10 +359,16 @@ function ShipmentCard({ task, onOpenDetail, onRefresh }: { task: Task; onOpenDet
             .from("tasks")
             .select("*, task_parts(*)")
             .eq("id", linkedId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error("Error fetching linked task:", error);
+            return;
+        }
+
+        if (!data) {
+            setLinkedTask(null);
+            setLinkedParts([]);
             return;
         }
 
