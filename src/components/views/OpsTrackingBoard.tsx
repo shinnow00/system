@@ -517,9 +517,13 @@ function ShipmentCard({ task, onOpenDetail, onRefresh }: { task: Task; onOpenDet
                                         <Paintbrush size={12} className="text-discord-blurple" />
                                         Linked Design
                                     </span>
-                                    {linkedTask && (
+                                    {linkedTask ? (
                                         <span className="text-[9px] bg-discord-dark px-1.5 py-0.5 rounded text-discord-text border border-white/5">
                                             {linkedTask.status}
+                                        </span>
+                                    ) : (
+                                        <span className="text-[9px] bg-discord-dark px-1.5 py-0.5 rounded text-discord-text-muted border border-white/5 italic">
+                                            Not Found
                                         </span>
                                     )}
                                 </div>

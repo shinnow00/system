@@ -233,7 +233,7 @@ export default function ShootingCard({ task, onUpdate }: ShootingCardProps) {
                                     </div>
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${linkedTaskStatus === "Done" ? "bg-discord-green/20 text-discord-green" : "bg-discord-item text-discord-text-muted"
                                         }`}>
-                                        {loadingLinkedStatus ? "..." : linkedTaskStatus || "Unknown"}
+                                        {loadingLinkedStatus ? "..." : (linkedTaskStatus || "Unknown")}
                                     </span>
                                 </div>
                             </div>

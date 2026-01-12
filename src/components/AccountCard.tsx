@@ -230,9 +230,13 @@ export default function AccountCard({ task, onUpdate, onEdit }: AccountCardProps
                                     <Paintbrush size={12} className="text-discord-blurple" />
                                     Linked Design Work
                                 </span>
-                                {linkedTask && (
+                                {linkedTask ? (
                                     <span className="text-[10px] bg-discord-item px-1.5 py-0.5 rounded text-discord-text">
                                         {linkedTask.status}
+                                    </span>
+                                ) : (
+                                    <span className="text-[10px] bg-discord-item px-1.5 py-0.5 rounded text-discord-text-muted italic">
+                                        Not found
                                     </span>
                                 )}
                             </div>
