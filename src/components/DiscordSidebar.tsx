@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Hash, Plus, LogOut } from "lucide-react";
 import { Department } from "@/utils/departments";
 import { Profile } from "@/types/database";
+import { createClient } from "@/utils/supabase/client";
 
 interface DiscordSidebarProps {
     activeDepartment: Department;
@@ -49,6 +51,40 @@ export default function DiscordSidebar({
     opsFilter,
     setOpsFilter
 }: DiscordSidebarProps) {
+    const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        if (!userProfile) return;
+
+        const supabase = createClient();
+        const channel = supabase.channel('global_presence', {
+            config: {
+                presence: {
+                    key: userProfile.id,
+                },
+            },
+        });
+
+        channel
+            .on('presence', { event: 'sync' }, () => {
+                const newState = channel.presenceState();
+                const onlineIds = new Set(Object.keys(newState));
+                setOnlineUsers(onlineIds);
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await channel.track({
+                        online_at: new Date().toISOString(),
+                        user_id: userProfile.id,
+                    });
+                }
+            });
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [userProfile]);
+
     return (
         <div className="flex flex-col w-60 !bg-[#2B2D31] flex-shrink-0 h-full">
             {/* Server Header */}
@@ -107,10 +143,14 @@ export default function DiscordSidebar({
                                         : "text-discord-text-muted hover:text-discord-text hover:bg-discord-item/50"
                                         }`}
                                 >
-                                    <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center flex-shrink-0">
-                                        <span className="text-white text-xs font-medium">
-                                            {profile.full_name?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || "U"}
-                                        </span>
+                                    <div className="relative">
+                                        <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center flex-shrink-0">
+                                            <span className="text-white text-xs font-medium">
+                                                {profile.full_name?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || "U"}
+                                            </span>
+                                        </div>
+                                        <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#2B2D31] transition-colors duration-300 ${onlineUsers.has(profile.id) ? "bg-emerald-500" : "bg-gray-500"
+                                            }`} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium truncate">

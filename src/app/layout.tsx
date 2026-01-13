@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import { AuthProvider } from "@/hooks/useUser";
 import { Toaster } from "@/components/ui/sonner";
 import NotificationListener from "@/components/NotificationListener";
+import MissedNotificationsDialog from "@/components/MissedNotificationsDialog";
 
 export default function RootLayout({
   children,
@@ -33,6 +34,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <NotificationListener />
+          <MissedNotificationsDialog />
           <Toaster position="top-right" richColors theme="dark" />
           {children}
         </AuthProvider>

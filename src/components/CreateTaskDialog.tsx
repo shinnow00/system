@@ -401,6 +401,21 @@ export default function CreateTaskDialog({
                 }
             }
 
+            // --- RECORD NOTIFICATION FOR ASSIGNEE ---
+            if (assignedTo && assignedTo !== user.id) {
+                try {
+                    await supabase.from("notifications").insert({
+                        user_id: assignedTo,
+                        sender_id: user.id,
+                        type: 'task',
+                        title: 'New Task Assigned',
+                        content: finalTitle
+                    });
+                } catch (notifyErr) {
+                    console.error("Error recording task notification:", notifyErr);
+                }
+            }
+
             // Success - close dialog and refresh
             onOpenChange(false);
             onTaskCreated(newTask);

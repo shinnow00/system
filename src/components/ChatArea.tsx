@@ -200,6 +200,45 @@ export default function ChatArea({ userProfile, channelId = "general" }: ChatAre
         } else {
             console.log("DEBUG: Message inserted successfully");
             setNewMessage("");
+
+            // --- RECORD NOTIFICATIONS FOR OFFLINE USERS ---
+            try {
+                // 1. Handle DMs
+                if (channelId.includes("_")) {
+                    const recipientId = channelId.split("_").find(id => id !== user.id);
+                    if (recipientId) {
+                        await supabase.from("notifications").insert({
+                            user_id: recipientId,
+                            sender_id: user.id,
+                            type: 'message',
+                            title: 'New Private Message',
+                            content: contentToSend.slice(0, 100)
+                        });
+                    }
+                }
+                // 2. Handle Mentions in General or other channels
+                else {
+                    const mentions = availableProfiles.filter(p =>
+                        p.id !== user.id &&
+                        (contentToSend.includes(`@${p.email}`) || (p.full_name && contentToSend.includes(`@${p.full_name}`)))
+                    );
+
+                    if (mentions.length > 0) {
+                        const notificationPromises = mentions.map(p =>
+                            supabase.from("notifications").insert({
+                                user_id: p.id,
+                                sender_id: user.id,
+                                type: 'message',
+                                title: 'You were mentioned!',
+                                content: contentToSend.slice(0, 100)
+                            })
+                        );
+                        await Promise.all(notificationPromises);
+                    }
+                }
+            } catch (notifyErr) {
+                console.error("Error recording notification:", notifyErr);
+            }
         }
 
         setSending(false);
