@@ -13,7 +13,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Shield, Trash2, AlertTriangle, Loader2, ShieldAlert, Users, Database, Activity, UserPlus, Edit, Check, X } from "lucide-react";
+import { Shield, Trash2, AlertTriangle, Loader2, ShieldAlert, Users, Database, Activity, UserPlus, Edit, Check, X, Camera, User } from "lucide-react";
 import { deleteUser } from "@/app/actions/deleteUser";
 
 interface SuperAdminViewProps {
@@ -41,6 +41,7 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
         department: ""
     });
     const [saving, setSaving] = useState(false);
+    const [uploadingId, setUploadingId] = useState<string | null>(null);
 
     // Invite dialog
     const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -184,6 +185,50 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
         }
     };
 
+    const handleAvatarUpload = async (userId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingId(userId);
+        const supabase = createClient();
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${userId}-${Date.now()}.${fileExt}`;
+            const filePath = `avatars/${fileName}`;
+
+            // 1. Upload to avatars bucket
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            // 3. Update profiles table
+            const { error: updateError } = await supabase
+                .from("profiles")
+                .update({ avatar_url: publicUrl })
+                .eq("id", userId);
+
+            if (updateError) throw updateError;
+
+            // 4. Update UI
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, avatar_url: publicUrl } : u));
+
+            alert("Profile photo updated successfully!");
+        } catch (err: any) {
+            console.error("Avatar upload error:", err);
+            alert("Failed to upload avatar: " + err.message);
+        } finally {
+            setUploadingId(null);
+        }
+    };
+
     // ACCESS DENIED screen for unauthorized users
     if (!isAuthorized) {
         return (
@@ -281,6 +326,9 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                         <thead>
                             <tr className="border-b border-black/20 bg-discord-dark/30">
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-discord-text-muted uppercase tracking-wide">
+                                    Avatar
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-discord-text-muted uppercase tracking-wide">
                                     User ID
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-discord-text-muted uppercase tracking-wide">
@@ -311,6 +359,32 @@ export default function SuperAdminView({ userEmail }: SuperAdminViewProps) {
                                         className={`border-b border-black/10 hover:bg-discord-item/30 transition-colors ${index === users.length - 1 ? "border-b-0" : ""
                                             } ${isShadowUser ? "bg-red-500/5" : ""}`}
                                     >
+                                        {/* Avatar */}
+                                        <td className="px-4 py-3">
+                                            <div className="relative group/avatar w-10 h-10">
+                                                <div className="w-10 h-10 rounded-full bg-discord-dark flex items-center justify-center overflow-hidden border border-white/5">
+                                                    {user.avatar_url ? (
+                                                        <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <User size={20} className="text-discord-text-muted" />
+                                                    )}
+                                                </div>
+                                                <label className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full opacity-0 group-hover/avatar:opacity-100 cursor-pointer transition-opacity">
+                                                    {uploadingId === user.id ? (
+                                                        <Loader2 size={16} className="text-white animate-spin" />
+                                                    ) : (
+                                                        <Camera size={16} className="text-white" />
+                                                    )}
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={(e) => handleAvatarUpload(user.id, e)}
+                                                        disabled={uploadingId !== null}
+                                                    />
+                                                </label>
+                                            </div>
+                                        </td>
                                         {/* User ID */}
                                         <td className="px-4 py-3">
                                             <code className="text-xs text-discord-text-muted bg-discord-dark px-2 py-1 rounded">

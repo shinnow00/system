@@ -52,7 +52,9 @@ export default function DiscordSidebar({
     setOpsFilter
 }: DiscordSidebarProps) {
     const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+    const [unreadChannels, setUnreadChannels] = useState<Set<string>>(new Set());
 
+    // Presence listener
     useEffect(() => {
         if (!userProfile) return;
 
@@ -84,6 +86,41 @@ export default function DiscordSidebar({
             supabase.removeChannel(channel);
         };
     }, [userProfile]);
+
+    // Unread messages listener
+    useEffect(() => {
+        if (!userProfile) return;
+
+        const supabase = createClient();
+        const channel = supabase
+            .channel('sidebar-unread-notifier')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+                const newMsg = payload.new;
+                if (newMsg.channel_id !== currentActiveChannelId && newMsg.sender_id !== userProfile.id) {
+                    setUnreadChannels(prev => {
+                        const next = new Set(prev);
+                        next.add(newMsg.channel_id);
+                        return next;
+                    });
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [userProfile, currentActiveChannelId]);
+
+    // Clear unread logic
+    useEffect(() => {
+        if (currentActiveChannelId && unreadChannels.has(currentActiveChannelId)) {
+            setUnreadChannels(prev => {
+                const next = new Set(prev);
+                next.delete(currentActiveChannelId);
+                return next;
+            });
+        }
+    }, [currentActiveChannelId, unreadChannels]);
 
     return (
         <div className="flex flex-col w-60 !bg-[#2B2D31] flex-shrink-0 h-full">
@@ -131,6 +168,8 @@ export default function DiscordSidebar({
                         {profiles.map((profile: any) => {
                             const dmId = getDmId(profile.id);
                             const isActive = currentActiveChannelId === dmId;
+                            const isUnread = unreadChannels.has(dmId);
+
                             return (
                                 <button
                                     key={profile.id}
@@ -140,14 +179,20 @@ export default function DiscordSidebar({
                                     }}
                                     className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors group ${isActive
                                         ? "bg-discord-item text-discord-text"
-                                        : "text-discord-text-muted hover:text-discord-text hover:bg-discord-item/50"
+                                        : isUnread
+                                            ? "bg-discord-item text-white font-bold"
+                                            : "text-discord-text-muted hover:text-discord-text hover:bg-discord-item/50"
                                         }`}
                                 >
                                     <div className="relative">
-                                        <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center flex-shrink-0">
-                                            <span className="text-white text-xs font-medium">
-                                                {profile.full_name?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || "U"}
-                                            </span>
+                                        <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                            {profile.avatar_url ? (
+                                                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-white text-xs font-medium">
+                                                    {profile.full_name?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || "U"}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#2B2D31] transition-colors duration-300 ${onlineUsers.has(profile.id) ? "bg-emerald-500" : "bg-gray-500"
                                             }`} />
@@ -317,10 +362,14 @@ export default function DiscordSidebar({
 
             {/* User Panel */}
             <div className="h-[52px] px-2 flex items-center gap-2 flex-shrink-0 !bg-[#2B2D31]">
-                <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-sm font-medium">
-                        {userProfile?.full_name?.[0]?.toUpperCase() || userProfile?.email?.[0]?.toUpperCase() || "U"}
-                    </span>
+                <div className="w-8 h-8 rounded-full bg-discord-blurple flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {userProfile?.avatar_url ? (
+                        <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                        <span className="text-white text-sm font-medium">
+                            {userProfile?.full_name?.[0]?.toUpperCase() || userProfile?.email?.[0]?.toUpperCase() || "U"}
+                        </span>
+                    )}
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-discord-text truncate">

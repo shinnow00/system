@@ -72,7 +72,7 @@ export default function ChatArea({ userProfile, channelId = "general" }: ChatAre
                 .from("messages")
                 .select(`
                     *,
-                    sender:sender_id ( email, role, department, full_name )
+                    sender:sender_id ( email, role, department, full_name, avatar_url )
                 `)
                 .eq("channel_id", channelId)
                 .order("created_at", { ascending: true })
@@ -148,7 +148,7 @@ export default function ChatArea({ userProfile, channelId = "general" }: ChatAre
                         .from("messages")
                         .select(`
                             *,
-                            sender:sender_id ( email, role, department, full_name )
+                            sender:sender_id ( email, role, department, full_name, avatar_url )
                         `)
                         .eq("id", payload.new.id)
                         .single();
@@ -438,11 +438,15 @@ export default function ChatArea({ userProfile, channelId = "general" }: ChatAre
                                         {/* Avatar */}
                                         {showHeader ? (
                                             <div
-                                                className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center ${getAvatarColor(
+                                                className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden ${getAvatarColor(
                                                     msg.sender_id
                                                 )}`}
                                             >
-                                                <span className="text-white font-medium">{getInitial(msg)}</span>
+                                                {msg.sender?.avatar_url ? (
+                                                    <img src={msg.sender.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-white font-medium">{getInitial(msg)}</span>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="w-10 flex-shrink-0" />
@@ -515,8 +519,12 @@ export default function ChatArea({ userProfile, channelId = "general" }: ChatAre
                                             onClick={() => selectMention(profile)}
                                             className="w-full flex items-center gap-2 p-2 hover:bg-discord-blurple/20 group transition-colors text-left"
                                         >
-                                            <div className="w-8 h-8 rounded-full bg-discord-item flex items-center justify-center text-xs font-bold text-discord-text">
-                                                {profile.email[0].toUpperCase()}
+                                            <div className="w-8 h-8 rounded-full bg-discord-item flex items-center justify-center overflow-hidden text-xs font-bold text-discord-text">
+                                                {profile.avatar_url ? (
+                                                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    profile.email[0].toUpperCase()
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm text-discord-text truncate group-hover:text-white">
