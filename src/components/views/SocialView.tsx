@@ -7,6 +7,7 @@ import { Instagram, Linkedin, ExternalLink, Loader2, Video, Image, LayoutGrid, C
 import { useUser } from "@/hooks/useUser";
 import TaskCheckbox from "@/components/TaskCheckbox";
 import ShootingBoard from "./ShootingBoard";
+import MetaAdsBoard from "./MetaAdsBoard";
 
 // Platform configuration with colors and icons
 const platformConfig: Record<string, { icon: typeof Instagram; color: string; bgColor: string }> = {
@@ -120,17 +121,7 @@ export default function SocialView({ filter = 'calendar' }: SocialViewProps) {
     }
 
     if (filter === 'meta-ads') {
-        return (
-            <div className="max-w-6xl">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-discord-text mb-2">Meta Ads</h1>
-                    <p className="text-discord-text-muted">Manage your Meta advertising campaigns.</p>
-                </div>
-                <div className="bg-discord-sidebar rounded-lg p-8 border border-white/5 text-center">
-                    <p className="text-discord-text-muted">Meta Ads management list placeholder</p>
-                </div>
-            </div>
-        );
+        return <MetaAdsBoard />;
     }
 
     return (

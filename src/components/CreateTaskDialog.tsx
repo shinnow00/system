@@ -62,6 +62,12 @@ export default function CreateTaskDialog({
     const [shootingScriptLink, setShootingScriptLink] = useState("");
     const [requireDesigner, setRequireDesigner] = useState(false);
 
+    // Meta Ads fields
+    const [adAccounts, setAdAccounts] = useState<{ id: string, name: string }[]>([]);
+    const [selectedAdAccount, setSelectedAdAccount] = useState("");
+    const [campaignObjective, setCampaignObjective] = useState("");
+    const [campaignDate, setCampaignDate] = useState<Date | undefined>();
+
     // Designers fields
     const [checklistItems, setChecklistItems] = useState<string[]>([]);
     const [newPartTitle, setNewPartTitle] = useState("");
@@ -124,9 +130,18 @@ export default function CreateTaskDialog({
 
                 setDesigners(designerData || []);
             }
+
+            // 3. If in Meta Ads channel, fetch Ad Accounts
+            if (activeDepartment === 'social' && socialFilter === 'meta-ads') {
+                const { data: adData } = await supabase
+                    .from("ad_accounts")
+                    .select("*")
+                    .order("name", { ascending: true });
+                setAdAccounts(adData || []);
+            }
         };
         if (open) fetchUsers();
-    }, [open, activeDepartment]);
+    }, [open, activeDepartment, socialFilter]);
 
     // Reset form when dialog closes
     useEffect(() => {
@@ -157,6 +172,9 @@ export default function CreateTaskDialog({
             setRequireDesigner(false);
             setOpsType('pricing');
             setOpsItems([{ name: "", qty: 1, price: 0 }]);
+            setSelectedAdAccount("");
+            setCampaignObjective("");
+            setCampaignDate(undefined);
             setError(null);
         }
     }, [open, activeDepartment]);
@@ -213,12 +231,35 @@ export default function CreateTaskDialog({
         setOpsItems(newItems);
     };
 
+    const handleAddAccount = async () => {
+        const name = window.prompt("Enter new Ad Account Name:");
+        if (!name) return;
+
+        const supabase = createClient();
+        const { data, error } = await supabase
+            .from("ad_accounts")
+            .insert({ name })
+            .select()
+            .single();
+
+        if (error) {
+            alert("Error adding ad account: " + error.message);
+            return;
+        }
+
+        if (data) {
+            setAdAccounts([...adAccounts, data]);
+            setSelectedAdAccount(data.id);
+        }
+    };
+
     // Handle form submission
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         const isShooting = activeDepartment === "social" && socialFilter === 'shooting';
+        const isMetaAds = activeDepartment === "social" && socialFilter === 'meta-ads';
 
-        if (!isShooting && !title.trim()) {
+        if (!isShooting && !isMetaAds && !title.trim()) {
             setError("Title is required");
             return;
         }
@@ -269,6 +310,14 @@ export default function CreateTaskDialog({
                         metaData.origin = 'social_request';
                     }
                     metaData.social_task_type = socialTaskType;
+                }
+
+                if (socialFilter === 'meta-ads') {
+                    const acc = adAccounts.find(a => a.id === selectedAdAccount);
+                    metaData.type = 'meta-ads';
+                    metaData.account_name = acc?.name || 'Unknown';
+                    metaData.campaign_objective = campaignObjective;
+                    metaData.campaign_date = campaignDate?.toISOString();
                 }
             } else if (activeDepartment === "accounts" || activeDepartment === "ops") {
                 if (activeDepartment === "ops") {
@@ -332,6 +381,9 @@ export default function CreateTaskDialog({
             } else if (activeDepartment === 'ops') {
                 const prefix = opsType === 'order' ? '[Order]' : '[Pricing]';
                 finalTitle = `${prefix} ${clientName || title || 'New Request'}`;
+            } else if (activeDepartment === 'social' && socialFilter === 'meta-ads') {
+                const acc = adAccounts.find(a => a.id === selectedAdAccount);
+                finalTitle = `[Ads] ${acc?.name || 'Unknown'} - ${campaignObjective}`;
             }
 
             const taskObj: any = {
@@ -491,7 +543,7 @@ export default function CreateTaskDialog({
                     )}
 
                     {/* Standard Fields */}
-                    {!(activeDepartment === 'social' && socialFilter === 'shooting') && activeDepartment !== 'accounts' && (
+                    {!(activeDepartment === 'social' && (socialFilter === 'shooting' || socialFilter === 'meta-ads')) && activeDepartment !== 'accounts' && (
                         <div>
                             <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
                                 Title <span className="text-red-400">*</span>
@@ -612,7 +664,95 @@ export default function CreateTaskDialog({
 
 
                     {/* Social Media Fields */}
-                    {activeDepartment === "social" && socialTaskType === "internal" && socialFilter !== 'shooting' && (
+                    {activeDepartment === "social" && socialFilter === 'meta-ads' && (
+                        <>
+                            <div className="border-t border-discord-dark pt-4">
+                                <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">
+                                    Meta Ads Details
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide">
+                                    Ad Account
+                                </label>
+                                <div className="flex gap-2">
+                                    <Select value={selectedAdAccount} onValueChange={setSelectedAdAccount}>
+                                        <SelectTrigger className="flex-1 bg-discord-dark border-none text-discord-text">
+                                            <SelectValue placeholder="Select Ad Account" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-discord-sidebar border-discord-dark">
+                                            {adAccounts.map((acc) => (
+                                                <SelectItem key={acc.id} value={acc.id} className="text-discord-text focus:bg-discord-item">
+                                                    {acc.name}
+                                                </SelectItem>
+                                            ))}
+                                            {adAccounts.length === 0 && (
+                                                <div className="p-2 text-xs text-discord-text-muted italic">
+                                                    No accounts found
+                                                </div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={handleAddAccount}
+                                        className="bg-discord-dark hover:bg-discord-item text-discord-text-muted px-3 border-none"
+                                        title="Add New Account"
+                                    >
+                                        <Plus size={18} />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                    Campaign Objective
+                                </label>
+                                <Select value={campaignObjective} onValueChange={setCampaignObjective}>
+                                    <SelectTrigger className="w-full bg-discord-dark border-none text-discord-text">
+                                        <SelectValue placeholder="Select Objective" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-discord-sidebar border-discord-dark">
+                                        {['Awareness', 'Traffic', 'Engagement', 'Leads', 'App Promotion', 'Sales'].map((obj) => (
+                                            <SelectItem key={obj} value={obj} className="text-discord-text focus:bg-discord-item">
+                                                {obj}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-discord-text-muted uppercase tracking-wide mb-2">
+                                    Campaign Date
+                                </label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item"
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
+                                            {campaignDate ? format(campaignDate, "PPP") : "Pick a date"}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark">
+                                        <Calendar
+                                            mode="single"
+                                            selected={campaignDate}
+                                            onSelect={setCampaignDate}
+                                            initialFocus
+                                            className="bg-discord-sidebar text-discord-text"
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </>
+                    )}
+
+                    {activeDepartment === "social" && socialTaskType === "internal" && socialFilter !== 'shooting' && socialFilter !== 'meta-ads' && (
                         <>
                             <div className="border-t border-discord-dark pt-4">
                                 <p className="text-xs font-bold text-discord-blurple uppercase tracking-wide mb-3">
