@@ -206,7 +206,7 @@ export default function AddFinanceDialog({
                         .eq('id', editingItem.id);
                     if (updateError) throw updateError;
                 } else {
-                    const { error: insertError } = await supabase
+                    const { data: newFinance, error: insertError } = await supabase
                         .from("finance")
                         .insert({
                             ...financeForm,
@@ -216,8 +216,30 @@ export default function AddFinanceDialog({
                             type: filter === 'payments' ? 'payment' : 'sale',
                             payment_status: financeForm.payment_status,
                             items: financeForm.items
-                        });
+                        })
+                        .select()
+                        .single();
                     if (insertError) throw insertError;
+
+                    // Automatically link to Treasury
+                    if (newFinance) {
+                        const { error: treasuryError } = await supabase
+                            .from("treasury")
+                            .insert({
+                                finance_id: newFinance.id,
+                                type: filter === 'sales' ? 'collection' : 'payment',
+                                date: financeForm.date,
+                                invoice_number: financeForm.invoice_number,
+                                client_name: financeForm.supplier_name,
+                                amount: Number(subtotal),
+                                tax: Number(financeForm.amount_vat),
+                                total: Number(amountTotal),
+                                status: 'Pending',
+                                transaction_method: null,
+                                deduction_profit: 0
+                            });
+                        if (treasuryError) throw treasuryError;
+                    }
                 }
             }
 

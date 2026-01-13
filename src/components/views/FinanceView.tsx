@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2, Plus, Calculator, Package, TrendingUp, TrendingDown, Search, Image as ImageIcon, Pencil, Trash2, ArrowUpRight, Calendar, User, Filter, ArrowUp, ArrowDown, X } from "lucide-react";
+import { Loader2, Plus, Calculator, Package, TrendingUp, TrendingDown, Search, Image as ImageIcon, Pencil, Trash2, ArrowUpRight, Calendar, User, Filter, ArrowUp, ArrowDown, X, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AddFinanceDialog from "@/components/AddFinanceDialog";
 import InventoryMovementDialog from "@/components/InventoryMovementDialog";
 import InventoryHistoryDialog from "@/components/InventoryHistoryDialog";
 import FinanceDetailDialog from "@/components/FinanceDetailDialog";
-import { Eye } from "lucide-react";
+import TreasuryBoard from "@/components/views/TreasuryBoard";
 
 interface FinanceRecord {
     id: string;
@@ -41,7 +41,7 @@ interface InventoryRecord {
 }
 
 interface FinanceViewProps {
-    filter: 'payments' | 'sales' | 'inventory';
+    filter: 'payments' | 'sales' | 'inventory' | 'paid-collected';
 }
 
 export default function FinanceView({ filter }: FinanceViewProps) {
@@ -72,6 +72,11 @@ export default function FinanceView({ filter }: FinanceViewProps) {
     const [vatFilter, setVatFilter] = useState<'all' | 'with_vat' | 'no_vat'>('all');
 
     const fetchData = async () => {
+        if (filter === 'paid-collected') {
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         const supabase = createClient();
 
@@ -107,12 +112,10 @@ export default function FinanceView({ filter }: FinanceViewProps) {
 
     // Finance Processing Logic
     const processedFinanceData = useMemo(() => {
-        // Safety check: if not viewing finance, just return empty array
-        if (filter === 'inventory') return [];
+        if (filter === 'inventory' || filter === 'paid-collected') return [];
 
         return financeData
             .filter(item => {
-                // Search term (Supplier/Client, Invoice, Description)
                 if (searchTerm) {
                     const search = searchTerm.toLowerCase();
                     const matchesSearch =
@@ -122,18 +125,15 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                     if (!matchesSearch) return false;
                 }
 
-                // VAT Filter
                 if (vatFilter === 'with_vat' && (!item.amount_vat || item.amount_vat === 0)) return false;
                 if (vatFilter === 'no_vat' && item.amount_vat > 0) return false;
 
-                // Amount Threshold Filter
                 if (amountFilter.operator !== 'none') {
                     if (amountFilter.operator === 'lt' && item.amount_base >= amountFilter.value) return false;
                     if (amountFilter.operator === 'gt' && item.amount_base <= amountFilter.value) return false;
                     if (amountFilter.operator === 'eq' && item.amount_base !== amountFilter.value) return false;
                 }
 
-                // Date Filter (Day, Week, Month, Year logic)
                 if (dateFilter.mode !== 'all') {
                     const itemDate = new Date(item.date);
                     const filterDate = new Date(dateFilter.value);
@@ -145,32 +145,27 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                     } else if (dateFilter.mode === 'year') {
                         if (itemDate.getFullYear() !== filterDate.getFullYear()) return false;
                     } else if (dateFilter.mode === 'week') {
-                        // Week logic: compare start of week
                         const getStartOfWeek = (d: Date) => {
                             const date = new Date(d);
                             const day = date.getDay();
-                            const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+                            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
                             return new Date(date.setDate(diff)).toDateString();
                         };
                         if (getStartOfWeek(itemDate) !== getStartOfWeek(filterDate)) return false;
                     }
                 }
 
-                // User Filter
                 if (userFilter && item.created_by !== userFilter) return false;
 
                 return true;
             })
             .sort((a, b) => {
-                // Amount Sorting
                 if (amountSort === 'asc') return a.amount_base - b.amount_base;
                 if (amountSort === 'desc') return b.amount_base - a.amount_base;
-                // Default to newest date
                 return new Date(b.date).getTime() - new Date(a.date).getTime();
             });
     }, [financeData, searchTerm, dateFilter, userFilter, amountSort, amountFilter, vatFilter, filter]);
 
-    // Unique Users for filter dropdown
     const uniqueUsers = useMemo(() => {
         const users = new Set<string>();
         financeData.forEach(item => {
@@ -237,10 +232,12 @@ export default function FinanceView({ filter }: FinanceViewProps) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-discord-text capitalize">
-                        {filter} Board
+                        {filter.replace('-', ' ')} Board
                     </h1>
                     <p className="text-discord-text-muted text-sm">
-                        {filter === 'inventory' ? 'Manage stock and warehouse movements.' : `Track all ${filter} and invoices.`}
+                        {filter === 'inventory' ? 'Manage stock and warehouse movements.' :
+                            filter === 'paid-collected' ? 'Consolidated view of all confirmed cash movements.' :
+                                `Track all ${filter} and invoices.`}
                     </p>
                 </div>
 
@@ -255,16 +252,18 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                             className="bg-discord-dark border-none rounded-lg pl-9 pr-4 py-2 text-sm text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none w-64"
                         />
                     </div>
-                    <Button
-                        onClick={() => {
-                            setEditingItem(null);
-                            setAddDialogOpen(true);
-                        }}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
-                    >
-                        <Plus size={18} />
-                        Add Entry
-                    </Button>
+                    {filter !== 'paid-collected' && (
+                        <Button
+                            onClick={() => {
+                                setEditingItem(null);
+                                setAddDialogOpen(true);
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
+                        >
+                            <Plus size={18} />
+                            Add Entry
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -275,10 +274,9 @@ export default function FinanceView({ filter }: FinanceViewProps) {
             )}
 
             {/* Filter Toolbar */}
-            {filter !== 'inventory' && (
+            {filter !== 'inventory' && filter !== 'paid-collected' && (
                 <div className="bg-discord-sidebar/50 backdrop-blur-sm border border-white/5 rounded-xl p-4 mb-6 space-y-4">
                     <div className="flex flex-wrap items-center gap-6">
-                        {/* Date Filter */}
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 text-discord-text-muted">
                                 <Calendar size={16} />
@@ -306,7 +304,6 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                             )}
                         </div>
 
-                        {/* User Filter */}
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 text-discord-text-muted">
                                 <User size={16} />
@@ -324,7 +321,6 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                             </select>
                         </div>
 
-                        {/* VAT Filter */}
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 text-discord-text-muted">
                                 <Filter size={16} />
@@ -343,7 +339,6 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/5">
-                        {/* Amount Filter */}
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 text-discord-text-muted">
                                 <Calculator size={16} />
@@ -372,7 +367,6 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                             </div>
                         </div>
 
-                        {/* Sorting */}
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 text-discord-text-muted">
                                 {amountSort === 'desc' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
@@ -387,7 +381,6 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                             </button>
                         </div>
 
-                        {/* Clear Filters */}
                         <button
                             onClick={() => {
                                 setDateFilter({ mode: 'all', value: new Date().toISOString().split('T')[0] });
@@ -407,7 +400,9 @@ export default function FinanceView({ filter }: FinanceViewProps) {
             )}
 
             {/* Content */}
-            {filter === 'inventory' ? (
+            {filter === 'paid-collected' ? (
+                <TreasuryBoard />
+            ) : filter === 'inventory' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredInventory.map((item) => (
                         <div key={item.id} className="bg-discord-sidebar rounded-xl overflow-hidden border border-white/5 hover:border-discord-blurple/50 transition-all group flex flex-col">
@@ -618,7 +613,7 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                     setAddDialogOpen(open);
                     if (!open) setEditingItem(null);
                 }}
-                filter={filter}
+                filter={filter === 'paid-collected' ? 'payments' : filter}
                 editingItem={editingItem}
                 onSuccess={handleDataAdded}
             />

@@ -229,6 +229,7 @@ export default function DiscordSidebar({
                         {[
                             { id: 'payments', name: 'Payments' },
                             { id: 'sales', name: 'Sales' },
+                            { id: 'paid-collected', name: 'Paid-Collected' },
                             { id: 'inventory', name: 'Inventory' }
                         ].map((channel) => {
                             const isActive = financeFilter === channel.id;
