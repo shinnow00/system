@@ -41,7 +41,10 @@ export default function AddFinanceDialog({
         amount_base: 0,
         amount_vat: 0,
         payment_status: "Pending" as "Pending" | "Paid" | "Overdue" | "Cancelled",
+        items: [] as { name: string, qty: number, price: number }[],
     });
+
+    const [newItem, setNewItem] = useState({ name: '', qty: 1, price: 0 });
 
     // Inventory State
     const [inventoryForm, setInventoryForm] = useState({
@@ -58,7 +61,9 @@ export default function AddFinanceDialog({
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     const isInventory = filter === 'inventory';
-    const amountTotal = financeForm.amount_base + financeForm.amount_vat;
+
+    const subtotal = financeForm.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || financeForm.amount_base || 0;
+    const amountTotal = subtotal + financeForm.amount_vat;
 
     useEffect(() => {
         if (open) {
@@ -87,6 +92,7 @@ export default function AddFinanceDialog({
                         amount_base: editingItem.amount_base || 0,
                         amount_vat: editingItem.amount_vat || 0,
                         payment_status: editingItem.payment_status || "Pending",
+                        items: editingItem.items || [],
                     });
                 }
             } else {
@@ -113,6 +119,7 @@ export default function AddFinanceDialog({
                         amount_base: 0,
                         amount_vat: 0,
                         payment_status: "Pending",
+                        items: [],
                     });
                 }
             }
@@ -189,11 +196,12 @@ export default function AddFinanceDialog({
                         .from("finance")
                         .update({
                             ...financeForm,
-                            amount_base: Number(financeForm.amount_base),
+                            amount_base: Number(subtotal),
                             amount_vat: Number(financeForm.amount_vat),
                             amount_total: Number(amountTotal),
                             type: filter === 'payments' ? 'payment' : 'sale',
-                            payment_status: financeForm.payment_status
+                            payment_status: financeForm.payment_status,
+                            items: financeForm.items
                         })
                         .eq('id', editingItem.id);
                     if (updateError) throw updateError;
@@ -202,11 +210,12 @@ export default function AddFinanceDialog({
                         .from("finance")
                         .insert({
                             ...financeForm,
-                            amount_base: Number(financeForm.amount_base),
+                            amount_base: Number(subtotal),
                             amount_vat: Number(financeForm.amount_vat),
                             amount_total: Number(amountTotal),
                             type: filter === 'payments' ? 'payment' : 'sale',
-                            payment_status: financeForm.payment_status
+                            payment_status: financeForm.payment_status,
+                            items: financeForm.items
                         });
                     if (insertError) throw insertError;
                 }
@@ -423,15 +432,106 @@ export default function AddFinanceDialog({
                                         className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none resize-none"
                                     />
                                 </div>
+
+                                {/* Items Section */}
+                                <div className="space-y-4 md:col-span-2 border-t border-white/5 pt-4">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-bold text-discord-text-muted uppercase">Items List</label>
+                                        <span className="text-xs text-discord-text-muted">{financeForm.items.length} Items</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-12 gap-2">
+                                        <div className="col-span-6">
+                                            <input
+                                                type="text"
+                                                placeholder="Item Name"
+                                                value={newItem.name}
+                                                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                                                className="w-full bg-discord-dark border-none rounded-lg p-2 text-sm text-discord-text outline-none"
+                                            />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <input
+                                                type="number"
+                                                placeholder="Qty"
+                                                value={newItem.qty}
+                                                onChange={(e) => setNewItem({ ...newItem, qty: Number(e.target.value) })}
+                                                className="w-full bg-discord-dark border-none rounded-lg p-2 text-sm text-discord-text outline-none"
+                                            />
+                                        </div>
+                                        <div className="col-span-3">
+                                            <input
+                                                type="number"
+                                                placeholder="Price"
+                                                value={newItem.price}
+                                                onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })}
+                                                className="w-full bg-discord-dark border-none rounded-lg p-2 text-sm text-discord-text outline-none"
+                                            />
+                                        </div>
+                                        <div className="col-span-1">
+                                            <Button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (newItem.name && newItem.qty > 0) {
+                                                        setFinanceForm({
+                                                            ...financeForm,
+                                                            items: [...financeForm.items, newItem]
+                                                        });
+                                                        setNewItem({ name: '', qty: 1, price: 0 });
+                                                    }
+                                                }}
+                                                className="w-full h-full bg-discord-blurple hover:bg-discord-blurple-hover p-0"
+                                            >
+                                                <Plus size={18} />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {financeForm.items.length > 0 && (
+                                        <div className="mt-4 rounded-lg overflow-hidden border border-white/5">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-discord-dark text-discord-text-muted text-xs uppercase">
+                                                    <tr>
+                                                        <th className="px-4 py-2">Item</th>
+                                                        <th className="px-4 py-2">Qty</th>
+                                                        <th className="px-4 py-2">Price</th>
+                                                        <th className="px-4 py-2 text-right">Total</th>
+                                                        <th className="px-4 py-2 w-10"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {financeForm.items.map((item, index) => (
+                                                        <tr key={index} className="bg-discord-dark/50">
+                                                            <td className="px-4 py-2">{item.name}</td>
+                                                            <td className="px-4 py-2">{item.qty}</td>
+                                                            <td className="px-4 py-2">{item.price.toLocaleString()}</td>
+                                                            <td className="px-4 py-2 text-right">{(item.qty * item.price).toLocaleString()}</td>
+                                                            <td className="px-4 py-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const newItems = [...financeForm.items];
+                                                                        newItems.splice(index, 1);
+                                                                        setFinanceForm({ ...financeForm, items: newItems });
+                                                                    }}
+                                                                    className="text-red-400 hover:text-red-300 transition-colors"
+                                                                >
+                                                                    <X size={16} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-discord-text-muted uppercase">Amount (Base) (EGP)</label>
-                                    <input
-                                        required
-                                        type="number"
-                                        value={financeForm.amount_base}
-                                        onChange={(e) => setFinanceForm({ ...financeForm, amount_base: Number(e.target.value) })}
-                                        className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
-                                    />
+                                    <label className="text-xs font-bold text-discord-text-muted uppercase">Subtotal (EGP)</label>
+                                    <div className="w-full bg-discord-dark/50 border border-white/5 rounded-lg p-3 text-discord-text">
+                                        {subtotal.toLocaleString()}
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-discord-text-muted uppercase text-orange-400">VAT (Amount) (EGP)</label>
@@ -443,7 +543,7 @@ export default function AddFinanceDialog({
                                         className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-orange-500 outline-none"
                                     />
                                 </div>
-                                <div className="md-col-span-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex justify-between items-center">
+                                <div className="md:col-span-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex justify-between items-center">
                                     <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Total Amount</span>
                                     <span className="text-2xl font-bold text-emerald-400">{amountTotal.toLocaleString()} EGP</span>
                                 </div>

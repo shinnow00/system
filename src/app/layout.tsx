@@ -18,6 +18,8 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from "@/hooks/useUser";
+import { Toaster } from "@/components/ui/sonner";
+import NotificationListener from "@/components/NotificationListener";
 
 export default function RootLayout({
   children,
@@ -30,6 +32,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
+          <NotificationListener />
+          <Toaster position="top-right" richColors theme="dark" />
           {children}
         </AuthProvider>
       </body>

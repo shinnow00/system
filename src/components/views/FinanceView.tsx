@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import AddFinanceDialog from "@/components/AddFinanceDialog";
 import InventoryMovementDialog from "@/components/InventoryMovementDialog";
 import InventoryHistoryDialog from "@/components/InventoryHistoryDialog";
+import FinanceDetailDialog from "@/components/FinanceDetailDialog";
+import { Eye } from "lucide-react";
 
 interface FinanceRecord {
     id: string;
@@ -20,6 +22,7 @@ interface FinanceRecord {
     description: string;
     type: 'payment' | 'sale';
     payment_status?: 'Pending' | 'Paid' | 'Overdue' | 'Cancelled';
+    items?: any[];
     created_at: string;
     created_by?: string;
 }
@@ -51,6 +54,8 @@ export default function FinanceView({ filter }: FinanceViewProps) {
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
     const [selectedInventoryItem, setSelectedInventoryItem] = useState<any>(null);
     const [editingItem, setEditingItem] = useState<any>(null);
+    const [detailItem, setDetailItem] = useState<any>(null);
+    const [detailDialogOpen, setDetailDialogOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
 
     // Advanced Filtering States
@@ -503,6 +508,7 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                     <th className="px-6 py-4">Base Amount</th>
                                     <th className="px-6 py-4">VAT</th>
                                     <th className="px-6 py-4">Total</th>
+                                    <th className="px-6 py-4 text-center">Details</th>
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -541,6 +547,18 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                                 {item.amount_total.toLocaleString()} EGP
                                             </span>
                                         </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button
+                                                onClick={() => {
+                                                    setDetailItem(item);
+                                                    setDetailDialogOpen(true);
+                                                }}
+                                                className="p-1.5 text-discord-text-muted hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-colors"
+                                                title="View Details"
+                                            >
+                                                <Eye size={18} />
+                                            </button>
+                                        </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
@@ -573,7 +591,7 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                             {processedFinanceData.length > 0 && (
                                 <tfoot>
                                     <tr className="bg-black/30 font-bold">
-                                        <td colSpan={6} className="px-6 py-4 text-right text-discord-text-muted uppercase text-xs tracking-widest">
+                                        <td colSpan={7} className="px-6 py-4 text-right text-discord-text-muted uppercase text-xs tracking-widest">
                                             Total {filter}
                                         </td>
                                         <td className="px-6 py-4 text-emerald-400 text-lg">
@@ -587,6 +605,12 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                     </div>
                 </div>
             )}
+
+            <FinanceDetailDialog
+                open={detailDialogOpen}
+                onOpenChange={setDetailDialogOpen}
+                record={detailItem}
+            />
 
             <AddFinanceDialog
                 open={addDialogOpen}
