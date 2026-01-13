@@ -66,10 +66,6 @@ export default function FinanceView({ filter }: FinanceViewProps) {
     });
     const [vatFilter, setVatFilter] = useState<'all' | 'with_vat' | 'no_vat'>('all');
 
-    useEffect(() => {
-        fetchData();
-    }, [filter]);
-
     const fetchData = async () => {
         setLoading(true);
         const supabase = createClient();
@@ -100,45 +96,15 @@ export default function FinanceView({ filter }: FinanceViewProps) {
         }
     };
 
-    const handleDataAdded = () => {
+    useEffect(() => {
         fetchData();
-        setEditingItem(null);
-    };
-
-    const handleEdit = (item: any) => {
-        setEditingItem(item);
-        setAddDialogOpen(true);
-    };
-
-    const handleDelete = async (id: string, table: string) => {
-        if (!confirm("Are you sure you want to delete this entry?")) return;
-
-        const supabase = createClient();
-        const { error: deleteError } = await supabase
-            .from(table)
-            .delete()
-            .eq("id", id);
-
-        if (deleteError) {
-            console.error("Error deleting entry:", deleteError);
-            alert("Failed to delete entry.");
-        } else {
-            fetchData();
-        }
-    };
-
-    const totalAmount = financeData.reduce((sum, item) => sum + item.amount_total, 0);
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Loader2 className="animate-spin text-discord-blurple" size={32} />
-            </div>
-        );
-    }
+    }, [filter]);
 
     // Finance Processing Logic
     const processedFinanceData = useMemo(() => {
+        // Safety check: if not viewing finance, just return empty array
+        if (filter === 'inventory') return [];
+
         return financeData
             .filter(item => {
                 // Search term (Supplier/Client, Invoice, Description)
@@ -197,14 +163,9 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                 // Default to newest date
                 return new Date(b.date).getTime() - new Date(a.date).getTime();
             });
-    }, [financeData, searchTerm, dateFilter, userFilter, amountSort, amountFilter, vatFilter]);
+    }, [financeData, searchTerm, dateFilter, userFilter, amountSort, amountFilter, vatFilter, filter]);
 
-    const filteredInventory = inventoryData.filter(item =>
-        item.item_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.item_code?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // Unique Users for filter dropdown (we only have created_by IDs, potentially need to join with profiles or just use what we have)
+    // Unique Users for filter dropdown
     const uniqueUsers = useMemo(() => {
         const users = new Set<string>();
         financeData.forEach(item => {
@@ -212,6 +173,41 @@ export default function FinanceView({ filter }: FinanceViewProps) {
         });
         return Array.from(users);
     }, [financeData]);
+
+    const filteredInventory = useMemo(() => {
+        if (filter !== 'inventory') return [];
+        return inventoryData.filter(item =>
+            item.item_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.item_code?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [inventoryData, searchTerm, filter]);
+
+    const handleDataAdded = () => {
+        fetchData();
+        setEditingItem(null);
+    };
+
+    const handleEdit = (item: any) => {
+        setEditingItem(item);
+        setAddDialogOpen(true);
+    };
+
+    const handleDelete = async (id: string, table: string) => {
+        if (!confirm("Are you sure you want to delete this entry?")) return;
+
+        const supabase = createClient();
+        const { error: deleteError } = await supabase
+            .from(table)
+            .delete()
+            .eq("id", id);
+
+        if (deleteError) {
+            console.error("Error deleting entry:", deleteError);
+            alert("Failed to delete entry.");
+        } else {
+            fetchData();
+        }
+    };
 
     const totalAmountValue = processedFinanceData.reduce((sum, item) => sum + item.amount_total, 0);
 
@@ -221,6 +217,14 @@ export default function FinanceView({ filter }: FinanceViewProps) {
         Overdue: "text-red-400 bg-red-400/10",
         Cancelled: "text-discord-text-muted bg-discord-dark/50"
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="animate-spin text-discord-blurple" size={32} />
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-7xl mx-auto">

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Profile } from "@/types/database";
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
     user: Profile | null;
@@ -14,61 +15,84 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
+        const supabase = createClient();
+
         const fetchUser = async () => {
-            const supabase = createClient();
+            try {
+                // Get current auth user
+                const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-            // Get current auth user
-            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+                if (authError) {
+                    // Check for invalid refresh token error
+                    if (authError.message.includes("Invalid Refresh Token") ||
+                        authError.message.includes("Refresh Token Not Found")) {
+                        await supabase.auth.signOut();
+                        setUser(null);
+                        setLoading(false);
+                        router.push('/login');
+                        return;
+                    }
+                    setUser(null);
+                    setLoading(false);
+                    return;
+                }
 
-            if (authError || !authUser) {
-                setUser(null);
+                if (!authUser) {
+                    setUser(null);
+                    setLoading(false);
+                    return;
+                }
+
+                // Get profile data
+                const { data: profile, error: profileError } = await supabase
+                    .from("profiles")
+                    .select("*")
+                    .eq("id", authUser.id)
+                    .single();
+
+                if (profileError) {
+                    console.error("Error fetching user profile:", profileError);
+                    // Fallback profile if record doesn't exist yet but user is authed
+                    setUser({
+                        id: authUser.id,
+                        email: authUser.email || "",
+                        full_name: null,
+                        role: null,
+                        department: null,
+                        avatar_url: null,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    });
+                } else {
+                    setUser(profile);
+                }
                 setLoading(false);
-                return;
+            } catch (error) {
+                console.error("Auth error:", error);
+                setLoading(false);
             }
-
-            // Get profile data
-            const { data: profile, error: profileError } = await supabase
-                .from("profiles")
-                .select("*")
-                .eq("id", authUser.id)
-                .single();
-
-            if (profileError) {
-                console.error("Error fetching user profile:", profileError);
-                // Fallback profile if record doesn't exist yet but user is authed
-                setUser({
-                    id: authUser.id,
-                    email: authUser.email || "",
-                    full_name: null,
-                    role: null,
-                    department: null,
-                    avatar_url: null,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                });
-            } else {
-                setUser(profile);
-            }
-
-            setLoading(false);
         };
 
-        fetchUser();
-
-        // Optional: Set up auth listener if you want to react to logouts/logins in real-time
-        const supabase = createClient();
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (!session) {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_OUT') {
                 setUser(null);
-            } else {
-                fetchUser();
+                setLoading(false);
+                router.push('/login');
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                if (session) {
+                    fetchUser();
+                }
             }
         });
 
+        // Initial fetch
+        fetchUser();
+
         return () => subscription.unsubscribe();
-    }, []);
+    }, [router]);
 
     return (
         <AuthContext.Provider value={{ user, loading }}>
