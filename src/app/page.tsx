@@ -55,7 +55,7 @@ function HomeContent() {
   const [designFilter, setDesignFilter] = useState(activeDepartment === "design" ? urlChannel || "my-tasks" : "my-tasks");
   const [socialFilter, setSocialFilter] = useState(activeDepartment === "social" ? urlChannel || "calendar" : "calendar");
   const [hrFilter, setHrFilter] = useState(activeDepartment === "hr" ? urlChannel || "attendance" : "attendance");
-  const [financeFilter, setFinanceFilter] = useState<"payments" | "sales" | "inventory">(
+  const [financeFilter, setFinanceFilter] = useState<"payments" | "sales" | "paid-collected" | "inventory">(
     activeDepartment === "finance" ? (urlChannel as any) || "payments" : "payments"
   );
   const [opsFilter, setOpsFilter] = useState(activeDepartment === "ops" ? urlChannel || "tracking" : "tracking");
@@ -124,6 +124,33 @@ function HomeContent() {
     checkAuthAndFetchProfile();
   }, [router, urlDept]);
 
+  // Sync state when URL params change (e.g., from notifications)
+  useEffect(() => {
+    const dept = searchParams.get("dept") as Department | null;
+    const channel = searchParams.get("channel");
+
+    if (dept && dept !== activeDepartment) {
+      setActiveDepartment(dept);
+    }
+
+    if (channel) {
+      if (channel === "general") {
+        setIsGeneralChat(true);
+        setCurrentChannel("general");
+      } else {
+        setIsGeneralChat(false);
+        setCurrentChannel(channel);
+
+        // Sync sub-filters
+        if (dept === "design") setDesignFilter(channel);
+        if (dept === "social") setSocialFilter(channel);
+        if (dept === "hr") setHrFilter(channel);
+        if (dept === "finance") setFinanceFilter(channel as any);
+        if (dept === "ops") setOpsFilter(channel);
+      }
+    }
+  }, [searchParams]);
+
   // Sync URL when state changes
   useEffect(() => {
     if (loading) return;
@@ -138,7 +165,13 @@ function HomeContent() {
       else channel = currentChannel;
     }
 
-    updateUrl(activeDepartment, channel);
+    // Only push to URL if it's different from current to avoid infinite loop
+    const currentUrlDept = searchParams.get("dept");
+    const currentUrlChannel = searchParams.get("channel");
+
+    if (activeDepartment !== currentUrlDept || channel !== currentUrlChannel) {
+      updateUrl(activeDepartment, channel);
+    }
   }, [activeDepartment, isGeneralChat, designFilter, socialFilter, hrFilter, financeFilter, opsFilter, currentChannel, loading]);
 
   const handleDepartmentChange = (dept: Department) => {
