@@ -10,6 +10,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Loader2, Package, ArrowUpRight, ArrowDownRight, History } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
 interface InventoryLog {
     id: string;
@@ -122,7 +123,7 @@ export default function InventoryHistoryDialog({
                                     {logs.map((log) => (
                                         <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                {new Date(log.date).toLocaleDateString()}
+                                                {formatDate(log.date)}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className={`flex items-center gap-1 font-bold ${log.type === 'In' ? 'text-green-400' : 'text-red-400'}`}>

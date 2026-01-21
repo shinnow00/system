@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Personnel } from "@/types/database";
 import { Search, Database, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 import AddPersonDialog from "./AddPersonDialog";
 import {
     Dialog,
@@ -183,7 +184,7 @@ export default function HrDatabaseBoard() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-sm text-discord-text">
-                                                {p.start_date ? new Date(p.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}
+                                                {p.start_date ? formatDate(p.start_date) : '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">

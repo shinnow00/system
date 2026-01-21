@@ -15,6 +15,7 @@ import {
     Loader2
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from "date-fns";
+import { formatDate } from "@/utils/formatDate";
 
 interface EmployeeAttendanceDialogProps {
     isOpen: boolean;
@@ -186,7 +187,7 @@ export default function EmployeeAttendanceDialog({ isOpen, onClose, employee }: 
                                     <tr key={record.id} className="hover:bg-white/[0.02]">
                                         <td className="px-4 py-3">
                                             <div className="text-sm font-bold text-discord-text">
-                                                {format(new Date(record.date), "MMM dd, EEE")}
+                                                {formatDate(record.date)}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-center">

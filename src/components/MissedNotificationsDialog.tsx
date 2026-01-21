@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Bell } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
 export default function MissedNotificationsDialog() {
     const { user: userProfile } = useUser();
@@ -83,7 +84,7 @@ export default function MissedNotificationsDialog() {
                             <div key={n.id} className="bg-discord-dark/50 p-3 rounded-lg border border-white/5">
                                 <div className="flex justify-between items-start mb-1">
                                     <span className="text-xs font-bold text-discord-blurple uppercase tracking-wider">{n.title}</span>
-                                    <span className="text-[10px] text-discord-text-muted">{new Date(n.created_at).toLocaleDateString()}</span>
+                                    <span className="text-[10px] text-discord-text-muted">{formatDate(n.created_at)}</span>
                                 </div>
                                 <p className="text-sm text-discord-text mb-2 line-clamp-2">{n.content}</p>
                                 <div className="flex items-center gap-2">

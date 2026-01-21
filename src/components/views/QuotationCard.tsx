@@ -6,6 +6,7 @@ import { Task } from "@/types/database";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { createClient } from "@/utils/supabase/client";
+import { formatDate } from "@/utils/formatDate";
 
 interface QuotationCardProps {
     task: Task;
@@ -21,7 +22,7 @@ export default function QuotationCard({ task, onEdit, onDelete }: QuotationCardP
         const doc = new jsPDF();
         const clientName = meta.client_name || "Client";
         const companyName = meta.company_name || "Individual";
-        const date = meta.quotation_date || new Date().toLocaleDateString();
+        const date = meta.quotation_date ? formatDate(meta.quotation_date) : formatDate(new Date());
 
         // Colors
         const darkBlue = [0, 51, 102]; // #003366
@@ -106,7 +107,7 @@ export default function QuotationCard({ task, onEdit, onDelete }: QuotationCardP
         }
 
         // E. Save
-        doc.save(`Quotation_${clientName.replace(/\s+/g, '_')}.pdf`);
+        doc.save(`Quotation_${clientName.replace(/\s+/g, '_')}_${date}.pdf`);
     };
 
     const handleDelete = async () => {

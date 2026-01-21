@@ -334,11 +334,11 @@ export default function ChatArea({ userProfile, channelId = "general" }: ChatAre
         } else if (date.toDateString() === yesterday.toDateString()) {
             return "Yesterday";
         }
-        return date.toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-        });
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
     };
 
     // Check if we need a date separator

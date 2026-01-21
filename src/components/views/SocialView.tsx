@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Task } from "@/types/database";
 import { Instagram, Linkedin, ExternalLink, Loader2, Video, Image, LayoutGrid, CheckCircle2, Clock } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 import { useUser } from "@/hooks/useUser";
 import TaskCheckbox from "@/components/TaskCheckbox";
 import ShootingBoard from "./ShootingBoard";
@@ -232,7 +233,7 @@ export default function SocialView({ filter = 'calendar' }: SocialViewProps) {
                                     {task.deadline && (
                                         <div className="flex items-center gap-1.5 text-xs text-discord-text-muted">
                                             <span className="font-semibold text-[10px] uppercase">Due:</span>
-                                            <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                                            <span>{formatDate(task.deadline)}</span>
                                         </div>
                                     )}
                                     {task.department === "Designers" ? (
@@ -252,7 +253,7 @@ export default function SocialView({ filter = 'calendar' }: SocialViewProps) {
                             {/* Card Footer */}
                             <div className="px-4 py-2 bg-discord-dark/30 border-t border-black/10">
                                 <div className="flex items-center justify-between text-xs text-discord-text-muted">
-                                    <span>Created {new Date(task.created_at).toLocaleDateString()}</span>
+                                    <span>Created {formatDate(task.created_at)}</span>
                                 </div>
                             </div>
                         </div>

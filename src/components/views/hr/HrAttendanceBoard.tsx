@@ -15,6 +15,7 @@ import {
     CalendarClock
 } from "lucide-react";
 import { format, subDays, parseISO } from "date-fns";
+import { formatDate } from "@/utils/formatDate";
 import EditAttendanceDialog from "./EditAttendanceDialog";
 import { Pencil } from "lucide-react";
 
@@ -421,7 +422,7 @@ export default function HrAttendanceBoard() {
                                     <tr key={record.id} className="hover:bg-white/[0.02] transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="text-sm text-discord-text font-medium">
-                                                {format(new Date(record.date), "MMM dd, yyyy")}
+                                                {formatDate(record.date)}
                                             </div>
                                             <div className="text-[10px] text-discord-text-muted uppercase">
                                                 {format(new Date(record.created_at), "hh:mm a")}

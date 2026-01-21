@@ -3,6 +3,7 @@
 import { Task, TaskPart } from "@/types/database";
 import { createClient } from "@/utils/supabase/client";
 import { format } from "date-fns";
+import { formatDate } from "@/utils/formatDate";
 import { Phone, Calendar, MessageSquare, DollarSign, MapPin, Edit2, Archive, Paintbrush, Plus, CheckSquare } from "lucide-react";
 import {
     Select,
@@ -159,7 +160,7 @@ export default function AccountCard({ task, onUpdate, onEdit }: AccountCardProps
                     <div className="min-w-0">
                         <p className="text-[10px] font-bold text-discord-text-muted uppercase">Call Date</p>
                         <p className="text-sm text-discord-text truncate">
-                            {meta.call_date ? format(new Date(meta.call_date), "MMM d, yyyy") : "—"}
+                            {meta.call_date ? formatDate(meta.call_date) : "—"}
                         </p>
                     </div>
                 </div>

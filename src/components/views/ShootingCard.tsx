@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Task, Profile } from "@/types/database";
+import { formatDate } from "@/utils/formatDate";
 import {
     Video,
     Calendar,
@@ -201,7 +202,7 @@ export default function ShootingCard({ task, onUpdate }: ShootingCardProps) {
             <div className="space-y-3 flex-1">
                 <div className="flex items-center gap-2 text-sm text-discord-text-muted">
                     <Calendar size={16} />
-                    <span>{task.deadline ? new Date(task.deadline).toLocaleDateString() : "No Deadline"}</span>
+                    <span>{task.deadline ? formatDate(task.deadline) : "No Deadline"}</span>
                 </div>
 
                 {meta.script_link && (
@@ -265,7 +266,7 @@ export default function ShootingCard({ task, onUpdate }: ShootingCardProps) {
             </div>
 
             <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px] text-discord-text-muted uppercase font-bold">
-                <span>Created {new Date(task.created_at).toLocaleDateString()}</span>
+                <span>Created {formatDate(task.created_at)}</span>
                 {requireDesigner && (
                     <span className="flex items-center gap-1 text-discord-blurple/80">
                         <CheckCircle2 size={12} /> Designer Required

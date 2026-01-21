@@ -8,6 +8,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Calculator, X, Receipt, Building2, Calendar, FileText } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
 interface FinanceDetailDialogProps {
     open: boolean;
@@ -44,7 +45,7 @@ export default function FinanceDetailDialog({
                         </span>
                         <span className="text-xs text-discord-text-muted flex items-center gap-1">
                             <Calendar size={12} />
-                            {new Date(record.date).toLocaleDateString()}
+                            {formatDate(record.date)}
                         </span>
                     </div>
                     <DialogTitle className="flex items-center gap-2 text-xl capitalize">

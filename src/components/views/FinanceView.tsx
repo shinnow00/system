@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2, Plus, Calculator, Package, TrendingUp, TrendingDown, Search, Image as ImageIcon, Pencil, Trash2, ArrowUpRight, Calendar, User, Filter, ArrowUp, ArrowDown, X, Eye } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 import { Button } from "@/components/ui/button";
 import AddFinanceDialog from "@/components/AddFinanceDialog";
 import InventoryMovementDialog from "@/components/InventoryMovementDialog";
@@ -511,7 +512,7 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                 {processedFinanceData.map((item) => (
                                     <tr key={item.id} className="hover:bg-white/[0.02] transition-colors group">
                                         <td className="px-6 py-4 text-sm text-discord-text">
-                                            {new Date(item.date).toLocaleDateString()}
+                                            {formatDate(item.date)}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-xs font-mono bg-discord-dark px-2 py-1 rounded text-discord-text-muted">

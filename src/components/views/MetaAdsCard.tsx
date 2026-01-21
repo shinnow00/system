@@ -2,6 +2,7 @@
 
 import { Task } from "@/types/database";
 import { format } from "date-fns";
+import { formatDate } from "@/utils/formatDate";
 import { Calendar, Layout } from "lucide-react";
 
 interface MetaAdsCardProps {
@@ -52,7 +53,7 @@ export default function MetaAdsCard({ task }: MetaAdsCardProps) {
                 <div className="flex items-center gap-2 text-discord-text-muted">
                     <Calendar size={14} className="opacity-50" />
                     <span className="text-xs font-medium">
-                        {campaignDate ? format(campaignDate, "MMM d, yyyy") : "No Date"}
+                        {meta.campaign_date ? formatDate(meta.campaign_date) : "No Date"}
                     </span>
                 </div>
                 <div className="text-[9px] font-black text-discord-text-muted/30 uppercase tracking-tighter">

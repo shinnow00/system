@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
 import { Task, TaskPart } from "@/types/database";
+import { formatDate } from "@/utils/formatDate";
 
 // User Role - Removed mock data
 
@@ -130,7 +131,7 @@ export default function TaskCard({ task, onTaskUpdate }: TaskCardProps) {
                         <span className="text-xs text-discord-text-muted">
                             Due: <span className="text-discord-text">
                                 {taskData.deadline
-                                    ? new Date(taskData.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                    ? formatDate(taskData.deadline)
                                     : "No date"}
                             </span>
                         </span>

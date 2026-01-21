@@ -18,6 +18,7 @@ import {
     Hash
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatDate } from "@/utils/formatDate";
 import CompleteTransactionDialog from "@/components/CompleteTransactionDialog";
 
 interface TreasuryRecord {
@@ -194,8 +195,8 @@ export default function TreasuryBoard() {
                     <button
                         onClick={() => setActiveTab('collection')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'collection'
-                                ? "bg-discord-sidebar text-white shadow-lg border border-white/5"
-                                : "text-discord-text-muted hover:text-discord-text"
+                            ? "bg-discord-sidebar text-white shadow-lg border border-white/5"
+                            : "text-discord-text-muted hover:text-discord-text"
                             }`}
                     >
                         Collections
@@ -203,8 +204,8 @@ export default function TreasuryBoard() {
                     <button
                         onClick={() => setActiveTab('payment')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'payment'
-                                ? "bg-discord-sidebar text-white shadow-lg border border-white/5"
-                                : "text-discord-text-muted hover:text-discord-text"
+                            ? "bg-discord-sidebar text-white shadow-lg border border-white/5"
+                            : "text-discord-text-muted hover:text-discord-text"
                             }`}
                     >
                         Payments
@@ -246,7 +247,7 @@ export default function TreasuryBoard() {
                             {filteredAndSortedData.map((tx) => (
                                 <tr key={tx.id} className="hover:bg-white/[0.01] transition-colors group">
                                     <td className="px-6 py-4 text-sm text-discord-text group-hover:text-white">
-                                        {new Date(tx.date).toLocaleDateString()}
+                                        {formatDate(tx.date)}
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className="text-xs font-mono bg-discord-dark/50 px-2 py-1 rounded text-discord-text-muted">
@@ -270,8 +271,8 @@ export default function TreasuryBoard() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full w-fit ${tx.status === 'Pending'
-                                                ? "bg-yellow-400/10 text-yellow-400"
-                                                : "bg-emerald-400/10 text-emerald-400"
+                                            ? "bg-yellow-400/10 text-yellow-400"
+                                            : "bg-emerald-400/10 text-emerald-400"
                                             }`}>
                                             {tx.status === 'Pending' ? <Clock size={12} /> : <CheckCircle2 size={12} />}
                                             <span className="text-[10px] font-bold uppercase">{tx.status}</span>

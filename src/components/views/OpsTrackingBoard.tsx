@@ -17,6 +17,7 @@ import {
     Users
 } from "lucide-react";
 import { format } from "date-fns";
+import { formatDate } from "@/utils/formatDate";
 import {
     Dialog,
     DialogContent,
@@ -579,7 +580,7 @@ function ShipmentCard({ task, onOpenDetail, onRefresh }: { task: Task; onOpenDet
                         <div className="text-[9px] font-black text-discord-text-muted uppercase tracking-widest mb-1">Target Date</div>
                         <div className="flex items-center gap-1.5 text-xs font-bold text-discord-text">
                             <Calendar size={12} className="text-discord-text-muted" />
-                            {task.deadline ? format(new Date(task.deadline), "MMM dd") : "No Date"}
+                            {formatDate(task.deadline)}
                         </div>
                     </div>
 
