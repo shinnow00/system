@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2, Plus, Calculator, Package, TrendingUp, TrendingDown, Search, Image as ImageIcon, Pencil, Trash2, ArrowUpRight, Calendar, User, Filter, ArrowUp, ArrowDown, X, Eye } from "lucide-react";
+import { Loader2, Plus, Calculator, Package, TrendingUp, TrendingDown, Search, Image as ImageIcon, Pencil, Trash2, ArrowUpRight, Calendar as CalendarIcon, User, Filter, ArrowUp, ArrowDown, X, Eye } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { formatDate } from "@/utils/formatDate";
 import { Button } from "@/components/ui/button";
 import AddFinanceDialog from "@/components/AddFinanceDialog";
@@ -280,7 +288,7 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                     <div className="flex flex-wrap items-center gap-6">
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 text-discord-text-muted">
-                                <Calendar size={16} />
+                                <CalendarIcon size={16} />
                                 <span className="text-xs font-bold uppercase tracking-wider">Date</span>
                             </div>
                             <div className="flex bg-discord-dark rounded-lg p-1">
@@ -296,12 +304,29 @@ export default function FinanceView({ filter }: FinanceViewProps) {
                                 ))}
                             </div>
                             {dateFilter.mode !== 'all' && (
-                                <input
-                                    type="date"
-                                    value={dateFilter.value}
-                                    onChange={(e) => setDateFilter({ ...dateFilter, value: e.target.value })}
-                                    className="bg-discord-dark border-none rounded-lg px-3 py-1.5 text-xs text-discord-text focus:ring-1 focus:ring-discord-blurple outline-none"
-                                />
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "bg-discord-dark border-none rounded-lg px-3 py-1.5 text-xs text-discord-text hover:bg-discord-item h-auto font-normal",
+                                                !dateFilter.value && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-3 w-3" />
+                                            {dateFilter.value ? format(new Date(dateFilter.value), "dd-MM-yyyy") : <span>Pick a date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={dateFilter.value ? new Date(dateFilter.value) : undefined}
+                                            onSelect={(d) => setDateFilter({ ...dateFilter, value: d ? d.toISOString() : '' })}
+                                            initialFocus
+                                            className="bg-discord-sidebar text-discord-text"
+                                        />
+                                    </PopoverContent>
+                                </Popover>
                             )}
                         </div>
 

@@ -11,7 +11,15 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, X, Plus, Calculator, Package, Upload, Image as ImageIcon } from "lucide-react";
+import { Loader2, Save, X, Plus, Calculator, Package, Upload, Image as ImageIcon, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface AddFinanceDialogProps {
     open: boolean;
@@ -275,18 +283,42 @@ export default function AddFinanceDialog({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Common: Date */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 flex flex-col">
                             <label className="text-xs font-bold text-discord-text-muted uppercase">Date</label>
-                            <input
-                                required
-                                type="date"
-                                value={isInventory ? inventoryForm.date : financeForm.date}
-                                onChange={(e) => isInventory
-                                    ? setInventoryForm({ ...inventoryForm, date: e.target.value })
-                                    : setFinanceForm({ ...financeForm, date: e.target.value })
-                                }
-                                className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
-                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-discord-dark border-none text-discord-text hover:bg-discord-item h-[48px]",
+                                            !(isInventory ? inventoryForm.date : financeForm.date) && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {(isInventory ? inventoryForm.date : financeForm.date) ? (
+                                            format(new Date(isInventory ? inventoryForm.date : financeForm.date), "dd-MM-yyyy")
+                                        ) : (
+                                            <span>Pick a date</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={(isInventory ? inventoryForm.date : financeForm.date) ? new Date(isInventory ? inventoryForm.date : financeForm.date) : undefined}
+                                        onSelect={(d) => {
+                                            const val = d ? d.toISOString() : '';
+                                            if (isInventory) {
+                                                setInventoryForm({ ...inventoryForm, date: val });
+                                            } else {
+                                                setFinanceForm({ ...financeForm, date: val });
+                                            }
+                                        }}
+                                        initialFocus
+                                        className="bg-discord-sidebar text-discord-text"
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
 
                         {isInventory ? (

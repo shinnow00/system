@@ -12,7 +12,15 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Save, User, Briefcase, Phone, CreditCard, GraduationCap, Shield, FileText, Link as LinkIcon, CalendarDays } from "lucide-react";
+import { Loader2, Plus, Save, User, Briefcase, Phone, CreditCard, GraduationCap, Shield, FileText, Link as LinkIcon, CalendarDays, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface AddPersonDialogProps {
     open: boolean;
@@ -246,17 +254,33 @@ export default function AddPersonDialog({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Start Date */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 flex flex-col">
                             <label className="text-xs font-bold text-discord-text-muted uppercase tracking-wider flex items-center gap-1">
                                 <CalendarDays size={14} /> Start Date
                             </label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full bg-discord-dark border-none rounded-lg p-3 text-discord-text focus:ring-2 focus:ring-discord-blurple outline-none"
-                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-discord-dark border-none text-discord-text hover:bg-discord-item h-[48px]",
+                                            !startDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {startDate ? format(new Date(startDate), "dd-MM-yyyy") : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={startDate ? new Date(startDate) : undefined}
+                                        onSelect={(d) => setStartDate(d ? d.toISOString() : '')}
+                                        initialFocus
+                                        className="bg-discord-sidebar text-discord-text"
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
 
                         {/* Annual Balance */}

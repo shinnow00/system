@@ -24,6 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Plus, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface CreateTaskDialogProps {
     open: boolean;
@@ -613,13 +614,16 @@ export default function CreateTaskDialog({
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
-                                        className="w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item"
+                                        className={cn(
+                                            "w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item h-[40px] font-normal",
+                                            !deadline && "text-discord-text-muted"
+                                        )}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
-                                        {deadline ? format(deadline, "PPP") : "Pick a date"}
+                                        {deadline ? format(deadline, "dd-MM-yyyy") : <span>Pick a date</span>}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark">
+                                <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark" align="start">
                                     <Calendar
                                         mode="single"
                                         selected={deadline}
@@ -732,13 +736,16 @@ export default function CreateTaskDialog({
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
-                                            className="w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item"
+                                            className={cn(
+                                                "w-full justify-start text-left bg-discord-dark border-none text-discord-text hover:bg-discord-item h-[40px] font-normal",
+                                                !campaignDate && "text-discord-text-muted"
+                                            )}
                                         >
                                             <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
-                                            {campaignDate ? format(campaignDate, "PPP") : "Pick a date"}
+                                            {campaignDate ? format(campaignDate, "dd-MM-yyyy") : <span>Pick a date</span>}
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark">
+                                    <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark" align="start">
                                         <Calendar
                                             mode="single"
                                             selected={campaignDate}

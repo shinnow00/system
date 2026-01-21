@@ -17,7 +17,15 @@ import {
 import { format, subDays, parseISO } from "date-fns";
 import { formatDate } from "@/utils/formatDate";
 import EditAttendanceDialog from "./EditAttendanceDialog";
-import { Pencil } from "lucide-react";
+import { Pencil, Calendar as CalendarIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar as UICalendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 export default function HrAttendanceBoard() {
     const [personnel, setPersonnel] = useState<Personnel[]>([]);
@@ -378,13 +386,29 @@ export default function HrAttendanceBoard() {
 
                     {filterMode === "Custom" && (
                         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <Calendar size={16} className="text-discord-text-muted" />
-                            <input
-                                type="date"
-                                value={customDate}
-                                onChange={(e) => setCustomDate(e.target.value)}
-                                className="bg-discord-dark border border-white/10 rounded px-3 py-1.5 text-sm text-discord-text focus:border-discord-blurple outline-none"
-                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "bg-discord-dark border border-white/10 rounded px-3 py-1.5 h-auto text-sm text-discord-text hover:bg-discord-item font-normal",
+                                            !customDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4 text-discord-text-muted" />
+                                        {customDate ? format(new Date(customDate), "dd-MM-yyyy") : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark" align="start">
+                                    <UICalendar
+                                        mode="single"
+                                        selected={customDate ? new Date(customDate) : undefined}
+                                        onSelect={(d) => setCustomDate(d ? format(d, "yyyy-MM-dd") : '')}
+                                        initialFocus
+                                        className="bg-discord-sidebar text-discord-text"
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     )}
 

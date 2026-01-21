@@ -11,7 +11,15 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calculator, FileText, User, Building2, Calendar, Loader2 } from "lucide-react";
+import { Plus, Trash2, Calculator, FileText, User, Building2, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface Item {
     name: string;
@@ -179,16 +187,33 @@ export default function CreateQuotationDialog({ open, onOpenChange, onSuccess, t
                                 className="w-full px-3 py-2 bg-discord-dark border border-white/5 rounded text-sm text-discord-text focus:outline-none focus:ring-1 focus:ring-pink-500/50"
                             />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 flex flex-col">
                             <label className="text-[10px] font-black text-discord-text-muted uppercase tracking-widest flex items-center gap-2">
-                                <Calendar size={12} /> Date
+                                <CalendarIcon size={12} /> Date
                             </label>
-                            <input
-                                type="date"
-                                value={date}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDate(e.target.value)}
-                                className="w-full px-3 py-2 bg-discord-dark border border-white/5 rounded text-sm text-discord-text focus:outline-none focus:ring-1 focus:ring-pink-500/50"
-                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-discord-dark border border-white/5 rounded text-sm text-discord-text hover:bg-discord-item focus:ring-1 focus:ring-pink-500/50 h-[38px]",
+                                            !date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {date ? format(new Date(date), "dd-MM-yyyy") : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-discord-sidebar border-discord-dark" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={date ? new Date(date) : undefined}
+                                        onSelect={(d) => setDate(d ? d.toISOString() : '')}
+                                        initialFocus
+                                        className="bg-discord-sidebar text-discord-text"
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     </div>
 
